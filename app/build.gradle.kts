@@ -47,7 +47,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
+        kotlinCompilerExtensionVersion = "1.5.11"
     }
 
     packaging {
@@ -62,12 +62,11 @@ android {
 }
 
 dependencies {
-    // Explicit versions - Compose 1.5.4 for Kotlin 1.9.10 compatibility
-    val composeVersion = "1.5.4"
-    val material3Version = "1.1.2"
+    // Kotlin 1.9.24 + Compose compiler 1.5.11 + Compose runtime 1.6.1 (alinhados)
+    val composeVersion = "1.6.1"
+    val material3Version = "1.2.0"
     val lifecycleVersion = "2.7.0"
     val roomVersion = "2.6.1"
-    val composeBom = "2024.02.00"
 
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
@@ -87,9 +86,6 @@ dependencies {
 
     // XML Material
     implementation("com.google.android.material:material:1.11.0")
-
-    // Compose BOM for version alignment (does NOT force material3/1.1.2 pinning issues)
-    implementation(platform("androidx.compose:compose-bom:$composeBom"))
 
     // Compose
     implementation("androidx.compose.ui:ui:$composeVersion")
