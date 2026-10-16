@@ -1,0 +1,186 @@
+package com.matheus.gastos.viewmodel
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asFlow
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
+import com.matheus.gastos.data.entity.Category
+import com.matheus.gastos.data.entity.CreditCard
+import com.matheus.gastos.data.entity.Transaction
+import com.matheus.gastos.data.entity.BudgetLimit
+import com.matheus.gastos.data.repository.CategoryRepository
+import com.matheus.gastos.data.repository.CreditCardRepository
+import com.matheus.gastos.data.repository.TransactionRepository
+import com.matheus.gastos.data.repository.BudgetLimitRepository
+import com.matheus.gastos.data.repository.SettingsRepository
+import com.matheus.gastos.data.dao.TransactionDao
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import java.util.UUID
+
+class CategoryViewModel(application: Application, private val repo: CategoryRepository) : AndroidViewModel(application) {
+    val categories = repo.getAll().asLiveData(viewModelScope.coroutineContext)
+    val defaultCategories = repo.getDefaults().asLiveData(viewModelScope.coroutineContext)
+    val customCategories = repo.getCustom().asLiveData(viewModelScope.coroutineContext)
+
+    suspend fun insert(category: Category) = repo.insert(category)
+    suspend fun update(category: Category) = repo.update(category)
+    suspend fun delete(category: Category) = repo.delete(category)
+    suspend fun deleteById(id: Long) = repo.deleteById(id)
+}
+
+class CreditCardViewModel(application: Application, private val repo: CreditCardRepository) : AndroidViewModel(application) {
+    val activeCards = repo.getActive().asLiveData(viewModelScope.coroutineContext)
+    val allCards = repo.getAll().asLiveData(viewModelScope.coroutineContext)
+
+    suspend fun insert(card: CreditCard) = repo.insert(card)
+    suspend fun update(card: CreditCard) = repo.update(card)
+    suspend fun delete(card: CreditCard) = repo.delete(card)
+    suspend fun deleteById(id: Long) = repo.deleteById(id)
+    suspend fun getById(id: Long) = repo.getById(id)
+}
+
+class TransactionViewModel(application: Application, private val repo: TransactionRepository) : AndroidViewModel(application) {
+    private val _selectedMonth = MutableLiveData<Long>(System.currentTimeMillis())
+    val selectedMonth: LiveData<Long> = _selectedMonth
+
+    fun setSelectedMonth(timestamp: Long) {
+        _selectedMonth.value = timestamp
+    }
+
+    val currentMonthTransactions: LiveData<List<Transaction>> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { month ->
+            val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+            repo.getByDateRange(start, end)
+        }
+        .asLiveData(viewModelScope.coroutineContext)
+
+    val totalExpenses: LiveData<Double> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { month ->
+            val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+            repo.getTotalExpenses(start, end)
+        }
+        .map { it: Double? -> it ?: 0.0 }
+        .asLiveData(viewModelScope.coroutineContext)
+
+    val totalIncome: LiveData<Double> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { month ->
+            val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+            repo.getTotalIncome(start, end)
+        }
+        .map { it: Double? -> it ?: 0.0 }
+        .asLiveData(viewModelScope.coroutineContext)
+
+    val balance: LiveData<Double> = combine(
+        totalIncome.asFlow(),
+        totalExpenses.asFlow()
+    ) { income, expense ->
+        income - expense
+    }.asLiveData(viewModelScope.coroutineContext)
+
+    val expensesByCategory: LiveData<List<TransactionDao.CategoryExpense>> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { month ->
+            val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+            repo.getExpensesByCategory(start, end)
+        }
+        .asLiveData(viewModelScope.coroutineContext)
+
+    val expensesByCard: LiveData<List<TransactionDao.CardExpense>> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { month ->
+            val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+            repo.getExpensesByCard(start, end)
+        }
+        .asLiveData(viewModelScope.coroutineContext)
+
+    suspend fun insert(transaction: Transaction) = repo.insert(transaction)
+    suspend fun insertAll(transactions: List<Transaction>) = repo.insertAll(transactions)
+    suspend fun update(transaction: Transaction) = repo.update(transaction)
+    suspend fun delete(transaction: Transaction) = repo.delete(transaction)
+    suspend fun deleteById(id: Long) = repo.deleteById(id)
+    suspend fun deleteByInstallmentGroup(groupId: String) = repo.deleteByInstallmentGroup(groupId)
+    suspend fun getById(id: Long) = repo.getById(id)
+
+    fun getByDateRange(startDate: Long, endDate: Long): Flow<List<Transaction>> = repo.getByDateRange(startDate, endDate)
+    fun getByCategoryAndDateRange(categoryId: Long, startDate: Long, endDate: Long): Flow<List<Transaction>> = repo.getByCategoryAndDateRange(categoryId, startDate, endDate)
+    fun getByCardAndDateRange(cardId: Long, startDate: Long, endDate: Long): Flow<List<Transaction>> = repo.getByCardAndDateRange(cardId, startDate, endDate)
+    fun getFutureInstallments(currentDate: Long): Flow<List<Transaction>> = repo.getFutureInstallments(currentDate)
+    fun getInstallmentsByGroup(groupId: String): Flow<List<Transaction>> = repo.getInstallmentsByGroup(groupId)
+
+    suspend fun createInstallments(
+        baseTransaction: Transaction,
+        totalInstallments: Int,
+        categoryId: Long?,
+        subcategoryId: Long?,
+        creditCardId: Long?
+    ) {
+        repo.createInstallments(baseTransaction, totalInstallments, categoryId, subcategoryId, creditCardId)
+    }
+}
+
+class BudgetLimitViewModel(application: Application, private val repo: BudgetLimitRepository) : AndroidViewModel(application) {
+    val activeLimits = repo.getActiveWithCategories().asLiveData(viewModelScope.coroutineContext)
+
+    suspend fun insert(limit: BudgetLimit) = repo.insert(limit)
+    suspend fun update(limit: BudgetLimit) = repo.update(limit)
+    suspend fun delete(limit: BudgetLimit) = repo.delete(limit)
+    suspend fun deleteById(id: Long) = repo.deleteById(id)
+    suspend fun getById(id: Long) = repo.getById(id)
+}
+
+class SettingsViewModel(application: Application, private val repo: SettingsRepository) : AndroidViewModel(application) {
+    private val _themeMode = MutableLiveData<Int>(0)
+    val themeMode: LiveData<Int> = _themeMode
+
+    private val _accentColor = MutableLiveData<Int>(0xFF6750A4.toInt())
+    val accentColor: LiveData<Int> = _accentColor
+
+    private val _notificationsEnabled = MutableLiveData<Boolean>(true)
+    val notificationsEnabled: LiveData<Boolean> = _notificationsEnabled
+
+    init {
+        loadSettings()
+    }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            _themeMode.value = repo.getInt("theme_mode", 0)
+            _accentColor.value = repo.getInt("accent_color", 0xFF6750A4.toInt())
+            _notificationsEnabled.value = repo.getBoolean("notifications_enabled", true)
+        }
+    }
+
+    suspend fun setThemeMode(mode: Int) {
+        _themeMode.value = mode
+        repo.putInt("theme_mode", mode)
+    }
+
+    suspend fun setAccentColor(color: Int) {
+        _accentColor.value = color
+        repo.putInt("accent_color", color)
+    }
+
+    suspend fun setNotificationsEnabled(enabled: Boolean) {
+        _notificationsEnabled.value = enabled
+        repo.putBoolean("notifications_enabled", enabled)
+    }
+
+    suspend fun setLastBackupTime(time: Long) = repo.putLong("last_backup_time", time)
+    suspend fun getLastBackupTime(): Long = repo.getLong("last_backup_time", 0)
+}
