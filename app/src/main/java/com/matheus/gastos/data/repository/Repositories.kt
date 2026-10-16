@@ -129,10 +129,12 @@ class BudgetLimitRepository(private val dao: BudgetLimitDao) {
         val categoryColor: Int
     )
 
-    fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategory>> = dao.getActive().map { limits ->
-        limits.map { limit ->
-            BudgetLimitWithCategory(limit, null, 0)
-        } as List<BudgetLimitWithCategory>
+    fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategory>> {
+        return dao.getActive().map { limits ->
+            limits.map { limit ->
+                BudgetLimitWithCategory(limit, null, 0)
+            }
+        }
     }
 }
 

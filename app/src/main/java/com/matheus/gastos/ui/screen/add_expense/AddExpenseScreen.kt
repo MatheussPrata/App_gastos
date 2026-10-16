@@ -3,12 +3,14 @@ package com.matheus.gastos.ui.screen.add_expense
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.KeyboardType
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -22,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -85,7 +88,7 @@ fun AddExpenseScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(if (editing) "Editar Gasto" else "Novo Gasto") },
-            navigationIcon = { IconButton(onClick = onCancel) { Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar") } },
+            navigationIcon = { IconButton(onClick = onCancel) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar") } },
             actions = {
                 Button(onClick = {
                     // Save logic here
@@ -95,7 +98,7 @@ fun AddExpenseScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         )
 
@@ -171,13 +174,17 @@ fun AddExpenseScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Tipo", fontSize = 16.sp)
-                    androidx.compose.material3.SegmentedButton(
-                        selected = if (isExpense) "expense" else "income",
-                        onClick = { label -> isExpense = label == "expense" },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        androidx.compose.material3.Segment("expense") { Text("Despesa") }
-                        androidx.compose.material3.Segment("income") { Text("Receita") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = isExpense,
+                            onClick = { isExpense = true },
+                            label = { Text("Despesa") }
+                        )
+                        FilterChip(
+                            selected = !isExpense,
+                            onClick = { isExpense = false },
+                            label = { Text("Receita") }
+                        )
                     }
                 }
 

@@ -77,7 +77,7 @@ fun ExpensesScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         )
 

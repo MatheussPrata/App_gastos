@@ -56,9 +56,9 @@ fun CategoriesScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Categorias") },
-            navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar") } },
+            navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar") } },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         )
 
@@ -75,7 +75,7 @@ fun CategoriesScreen(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
                     colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
                     )
                 ) {
                     Row(

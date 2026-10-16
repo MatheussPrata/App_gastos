@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.clickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -80,7 +80,7 @@ fun SettingsScreen(
         TopAppBar(
             title = { Text("Configurações") },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         )
 
@@ -248,7 +248,7 @@ fun SettingsSection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.CardDefaults.cardColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {

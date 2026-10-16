@@ -60,7 +60,7 @@ fun CardsScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         )
 
@@ -77,7 +77,7 @@ fun CardsScreen(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
                     colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
                     )
                 ) {
                     Box(

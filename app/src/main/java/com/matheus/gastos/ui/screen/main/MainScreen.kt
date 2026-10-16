@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.clickable
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -30,10 +30,10 @@ import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.getLong
-import androidx.navigation.compose.navArgument
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import com.matheus.gastos.R
+import com.matheus.gastos.ui.navigation.Screen
 import com.matheus.gastos.ui.navigation.Expenses
 import com.matheus.gastos.ui.navigation.Cards
 import com.matheus.gastos.ui.navigation.Reports
@@ -204,7 +204,7 @@ fun CustomBottomNavigation(
                         tint = if (isSelected) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
-                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.foundation.layout.Modifier.padding(top = 4.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(top = 4.dp))
                     Text(
                         text = screen.title,
                         fontSize = 10.sp,

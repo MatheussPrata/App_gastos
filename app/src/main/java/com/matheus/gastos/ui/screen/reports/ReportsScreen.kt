@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.clickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,7 +71,7 @@ fun ReportsScreen(
         TopAppBar(
             title = { Text("Relatórios") },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
             )
         )
 
@@ -178,7 +178,7 @@ fun CategoryExpenseItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Row(
@@ -231,7 +231,7 @@ fun CardExpenseItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Row(
@@ -284,7 +284,7 @@ fun SummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Row(

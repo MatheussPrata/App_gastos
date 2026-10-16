@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     kotlin("android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
 }
@@ -46,10 +47,6 @@ android {
         viewBinding = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,LICENSE,LICENSE.txt,NOTICE,NOTICE.txt}"
@@ -62,11 +59,12 @@ android {
 }
 
 dependencies {
-    // Explicit versions - Compose 1.5.3 for Kotlin 1.9.10 compatibility
-    val composeVersion = "1.5.3"
+    // Explicit versions - Compose 1.5.4 for Kotlin 1.9.10 compatibility
+    val composeVersion = "1.5.4"
     val material3Version = "1.1.2"
     val lifecycleVersion = "2.7.0"
     val roomVersion = "2.6.1"
+    val composeBom = "2024.02.00"
 
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
@@ -86,6 +84,9 @@ dependencies {
 
     // XML Material
     implementation("com.google.android.material:material:1.11.0")
+
+    // Compose BOM for version alignment (does NOT force material3/1.1.2 pinning issues)
+    implementation(platform("androidx.compose:compose-bom:$composeBom"))
 
     // Compose
     implementation("androidx.compose.ui:ui:$composeVersion")
@@ -141,6 +142,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // JUnit + Mockito
