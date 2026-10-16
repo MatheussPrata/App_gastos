@@ -13,6 +13,7 @@ import com.matheus.gastos.data.local.Converters
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -22,7 +23,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideAppDatabase(@Suppress("UNUSED_PARAMETER") context: Context) = Room.databaseBuilder(
+    fun provideAppDatabase(@ApplicationContext context: Context) = Room.databaseBuilder(
         context.applicationContext,
         com.matheus.gastos.data.local.AppDatabase::class.java,
         "gastos-db"
