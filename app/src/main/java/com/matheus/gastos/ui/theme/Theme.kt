@@ -86,7 +86,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun GastosTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     accentColor: Int = 0xFF6750A4.toInt(),
     content: @Composable () -> Unit
 ) {

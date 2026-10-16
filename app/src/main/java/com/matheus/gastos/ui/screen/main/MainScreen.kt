@@ -1,28 +1,21 @@
 package com.matheus.gastos.ui.screen.main
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matheus.gastos.ui.navigation.Cards
 import com.matheus.gastos.ui.navigation.Expenses
@@ -30,6 +23,7 @@ import com.matheus.gastos.ui.navigation.Reports
 import com.matheus.gastos.ui.navigation.Screen
 import com.matheus.gastos.ui.navigation.Settings
 import com.matheus.gastos.ui.navigation.mainScreens
+import com.matheus.gastos.ui.screen.add_card.AddCardDialog
 import com.matheus.gastos.ui.screen.cards.CardsScreen
 import com.matheus.gastos.ui.screen.expenses.ExpensesScreen
 import com.matheus.gastos.ui.screen.reports.ReportsScreen
@@ -44,8 +38,6 @@ fun MainScreen(
     currentScreen: Screen = Expenses,
     onNavigateToAddExpense: () -> Unit = {},
     onNavigateToEditExpense: (Long) -> Unit = {},
-    onNavigateToAddCard: () -> Unit = {},
-    onNavigateToEditCard: (Long) -> Unit = {},
     onNavigateToCategories: () -> Unit = {},
     onNavigateToTab: (Screen) -> Unit = {}
 ) {
@@ -56,8 +48,48 @@ fun MainScreen(
 
     var selectedScreen by remember(currentScreen) { mutableStateOf(currentScreen) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.weight(1f)) {
+    // Estado do popup de cartão (adicionar/editar) — vale para qualquer aba.
+    var showCardDialog by remember { mutableStateOf(false) }
+    var editingCardId by remember { mutableStateOf(0L) }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                mainScreens.forEach { screen ->
+                    val isSelected = selectedScreen == screen
+                    NavigationBarItem(
+                        selected = isSelected,
+                        onClick = {
+                            selectedScreen = screen
+                            onNavigateToTab(screen)
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = screen.icon,
+                                contentDescription = screen.title
+                            )
+                        },
+                        label = { Text(screen.title) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             when (selectedScreen) {
                 Expenses -> ExpensesScreen(
                     viewModel = transactionViewModel,
@@ -69,8 +101,14 @@ fun MainScreen(
                 Cards -> CardsScreen(
                     viewModel = creditCardViewModel,
                     transactionViewModel = transactionViewModel,
-                    onAddCard = onNavigateToAddCard,
-                    onEditCard = onNavigateToEditCard
+                    onAddCard = {
+                        editingCardId = 0L
+                        showCardDialog = true
+                    },
+                    onEditCard = { id ->
+                        editingCardId = id
+                        showCardDialog = true
+                    }
                 )
                 Reports -> ReportsScreen(
                     transactionViewModel = transactionViewModel,
@@ -87,55 +125,12 @@ fun MainScreen(
             }
         }
 
-        CustomBottomNavigation(
-            selectedScreen = selectedScreen,
-            onScreenSelected = {
-                selectedScreen = it
-                onNavigateToTab(it)
-            }
-        )
-    }
-}
-
-@Composable
-fun CustomBottomNavigation(
-    selectedScreen: Screen,
-    onScreenSelected: (Screen) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        mainScreens.forEach { screen ->
-            val isSelected = selectedScreen == screen
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp)
-                    .clickable { onScreenSelected(screen) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = screen.icon,
-                        contentDescription = screen.title,
-                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = screen.title,
-                        fontSize = 10.sp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            }
+        if (showCardDialog) {
+            AddCardDialog(
+                cardId = editingCardId,
+                onDismiss = { showCardDialog = false },
+                creditCardViewModel = creditCardViewModel
+            )
         }
     }
 }

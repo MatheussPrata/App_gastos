@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -72,15 +73,17 @@ fun SettingsScreen(
     val notificationsEnabled = settingsViewModel.notificationsEnabled.observeAsState(initial = true)
 
     var showColorPicker by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Configurações") },
+            title = { Text("Configurações", fontWeight = FontWeight.SemiBold) },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                containerColor = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.onBackground
             )
         )
 
@@ -100,7 +103,7 @@ fun SettingsScreen(
                             else -> "Sistema"
                         },
                         icon = Icons.Filled.Palette,
-                        onClick = { }
+                        onClick = { showThemeDialog = true }
                     )
 
                     SettingsItem(
@@ -191,12 +194,23 @@ fun SettingsScreen(
                 SettingsSection(title = "Sobre") {
                     SettingsItem(
                         title = "Versão",
-                        subtitle = "1.0.0",
+                        subtitle = "0.1.0",
                         icon = Icons.Filled.Info,
                         onClick = { }
                     )
                 }
             }
+        }
+
+        if (showThemeDialog) {
+            ThemePickerDialog(
+                currentMode = themeMode.value,
+                onModeSelected = { mode ->
+                    coroutineScope.launch { settingsViewModel.setThemeMode(mode) }
+                    showThemeDialog = false
+                },
+                onDismiss = { showThemeDialog = false }
+            )
         }
 
         if (showColorPicker) {
@@ -245,8 +259,10 @@ fun SettingsSection(
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -281,6 +297,43 @@ fun SettingsItem(
             )
         },
         trailingContent = trailing
+    )
+}
+
+@Composable
+fun ThemePickerDialog(
+    currentMode: Int,
+    onModeSelected: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val options = listOf("Sistema", "Claro", "Escuro")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK") }
+        },
+        title = { Text("Tema") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                options.forEachIndexed { index, label ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onModeSelected(index) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = currentMode == index,
+                            onClick = { onModeSelected(index) }
+                        )
+                        Text(label, fontSize = 16.sp)
+                    }
+                }
+            }
+        }
     )
 }
 

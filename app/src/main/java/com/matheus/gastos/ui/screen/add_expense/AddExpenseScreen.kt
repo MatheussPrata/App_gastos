@@ -1,27 +1,34 @@
 package com.matheus.gastos.ui.screen.add_expense
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -33,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,162 +70,162 @@ fun AddExpenseScreen(
     var amount by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var selectedCardId by remember { mutableStateOf<Long?>(null) }
-    val date by remember { mutableStateOf(System.currentTimeMillis()) }
+    val date = remember { System.currentTimeMillis() }
     var isExpense by remember { mutableStateOf(true) }
     var isInstallment by remember { mutableStateOf(false) }
-    var installments by remember { mutableStateOf(1) }
+    var installments by remember { mutableStateOf("1") }
     var notes by remember { mutableStateOf("") }
 
     val editing = expenseId != 0L
+    val typeOptions = listOf("Gasto", "Entrada")
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(if (editing) "Editar Gasto" else "Novo Gasto") },
-            navigationIcon = {
-                IconButton(onClick = onCancel) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
-                }
-            },
-            actions = {
-                Button(onClick = onSave) {
-                    Text("Salvar")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (editing) "Editar transação" else "Nova transação",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onCancel) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
-        )
-
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                typeOptions.forEachIndexed { index, label ->
+                    SegmentedButton(
+                        selected = if (index == 0) isExpense else !isExpense,
+                        onClick = { isExpense = index == 0 },
+                        shape = SegmentedButtonDefaults.itemShape(index, typeOptions.size),
+                        label = { Text(label) }
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Descrição") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+            )
+
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { input -> amount = input.filter { it.isDigit() || it == '.' || it == ',' } },
+                label = { Text("Valor (R$)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            OutlinedTextField(
+                value = selectedCategoryId
+                    ?.let { id -> categories.firstOrNull { it.id == id }?.name }
+                    ?: "Selecionar",
+                onValueChange = {},
+                label = { Text("Categoria") },
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Categoria") },
+                readOnly = true
+            )
+
+            if (isExpense) {
+                OutlinedTextField(
+                    value = selectedCardId
+                        ?.let { id -> cards.firstOrNull { it.id == id }?.name }
+                        ?: "Nenhum",
+                    onValueChange = {},
+                    label = { Text("Cartão (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Cartão") },
+                    readOnly = true
+                )
+            }
+
+            OutlinedTextField(
+                value = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(date)),
+                onValueChange = {},
+                label = { Text("Data") },
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = { Icon(Icons.Filled.CalendarMonth, contentDescription = "Data") },
+                readOnly = true
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Parcelado", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                Checkbox(
+                    checked = isInstallment,
+                    onCheckedChange = { isInstallment = it }
+                )
+            }
+
+            if (isInstallment) {
+                OutlinedTextField(
+                    value = installments,
+                    onValueChange = { input -> installments = input.filter { it.isDigit() } },
+                    label = { Text("Parcelas") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Observações (opcional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Button(
+                onClick = onSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Descrição") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                )
+                Text("Salvar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
 
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("Valor") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = selectedCategoryId
-                        ?.let { id -> categories.firstOrNull { it.id == id }?.name }
-                        ?: "Categoria",
-                    onValueChange = {},
-                    label = { Text("Categoria") },
+            if (editing) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text = "Excluir transação",
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { },
-                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Categoria") },
-                    readOnly = true
+                        .padding(vertical = 8.dp)
                 )
-
-                if (isExpense) {
-                    OutlinedTextField(
-                        value = selectedCardId
-                            ?.let { id -> cards.firstOrNull { it.id == id }?.name }
-                            ?: "Cartão (opcional)",
-                        onValueChange = {},
-                        label = { Text("Cartão") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { },
-                        trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Cartão") },
-                        readOnly = true
-                    )
-                }
-
-                OutlinedTextField(
-                    value = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(date)),
-                    onValueChange = {},
-                    label = { Text("Data") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { },
-                    trailingIcon = { Icon(Icons.Filled.CalendarMonth, contentDescription = "Data") },
-                    readOnly = true
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Tipo", fontSize = 16.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = isExpense,
-                            onClick = { isExpense = true },
-                            label = { Text("Despesa") }
-                        )
-                        FilterChip(
-                            selected = !isExpense,
-                            onClick = { isExpense = false },
-                            label = { Text("Receita") }
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Parcelado", fontSize = 16.sp)
-                    Checkbox(
-                        checked = isInstallment,
-                        onCheckedChange = { isInstallment = it }
-                    )
-                }
-
-                if (isInstallment) {
-                    OutlinedTextField(
-                        value = installments.toString(),
-                        onValueChange = { installments = it.toIntOrNull() ?: 1 },
-                        label = { Text("Parcelas") },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Observações (opcional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    minLines = 3
-                )
-
-                if (editing) {
-                    Button(
-                        onClick = { },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    ) {
-                        Text("Excluir")
-                    }
-                }
             }
         }
     }

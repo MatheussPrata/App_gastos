@@ -6,7 +6,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.matheus.gastos.ui.screen.add_card.AddCardScreen
 import com.matheus.gastos.ui.screen.add_expense.AddExpenseScreen
 import com.matheus.gastos.ui.screen.categories.CategoriesScreen
 import com.matheus.gastos.ui.screen.main.MainScreen
@@ -21,8 +20,6 @@ fun AppNavHost() {
                 currentScreen = Expenses,
                 onNavigateToAddExpense = { navController.navigate(AddExpense.route) },
                 onNavigateToEditExpense = { id -> navController.navigate("edit_expense/$id") },
-                onNavigateToAddCard = { navController.navigate(AddCard.route) },
-                onNavigateToEditCard = { id -> navController.navigate("edit_card/$id") },
                 onNavigateToCategories = { navController.navigate(Categories.route) }
             )
         }
@@ -31,8 +28,6 @@ fun AppNavHost() {
                 currentScreen = Cards,
                 onNavigateToAddExpense = { navController.navigate(AddExpense.route) },
                 onNavigateToEditExpense = { id -> navController.navigate("edit_expense/$id") },
-                onNavigateToAddCard = { navController.navigate(AddCard.route) },
-                onNavigateToEditCard = { id -> navController.navigate("edit_card/$id") },
                 onNavigateToCategories = { navController.navigate(Categories.route) }
             )
         }
@@ -66,29 +61,7 @@ fun AppNavHost() {
                 onCancel = { navController.popBackStack() }
             )
         }
-        composable(AddCard.route) {
-            AddCardScreen(
-                onSave = { navController.popBackStack() },
-                onCancel = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route = EditCard.route,
-            arguments = listOf(navArgument("cardId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val cardId = backStackEntry.arguments?.getLong("cardId") ?: 0L
-            AddCardScreen(
-                cardId = cardId,
-                onSave = { navController.popBackStack() },
-                onCancel = { navController.popBackStack() }
-            )
-        }
         composable(Categories.route) {
-            CategoriesScreen(
-                onClose = { navController.popBackStack() }
-            )
-        }
-        composable(AddCategory.route) {
             CategoriesScreen(
                 onClose = { navController.popBackStack() }
             )
