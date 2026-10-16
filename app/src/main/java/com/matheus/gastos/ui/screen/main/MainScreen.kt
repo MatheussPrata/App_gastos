@@ -83,6 +83,7 @@ fun MainScreen(
                     creditCardViewModel = creditCardViewModel,
                     onNavigateToCategories = onNavigateToCategories
                 )
+                else -> {}
             }
         }
 

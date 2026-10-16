@@ -21,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -30,13 +31,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
@@ -45,6 +46,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesScreen(
     viewModel: TransactionViewModel,
@@ -53,9 +55,9 @@ fun ExpensesScreen(
     onAddExpense: () -> Unit,
     onEditExpense: (Long) -> Unit
 ) {
-    val transactionsState = viewModel.currentMonthTransactions.collectAsStateWithLifecycle(initialValue = emptyList())
-    val categoriesState = categoryViewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
-    val cardsState = creditCardViewModel.allCards.collectAsStateWithLifecycle(initialValue = emptyList())
+    val transactionsState = viewModel.currentMonthTransactions.observeAsState(initial = emptyList())
+    val categoriesState = categoryViewModel.categories.observeAsState(initial = emptyList())
+    val cardsState = creditCardViewModel.allCards.observeAsState(initial = emptyList())
 
     val transactions = transactionsState.value
     val categories = categoriesState.value

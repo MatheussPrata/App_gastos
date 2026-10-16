@@ -30,12 +30,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
@@ -53,8 +53,8 @@ fun AddExpenseScreen(
     onSave: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val categoriesState = categoryViewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
-    val cardsState = creditCardViewModel.allCards.collectAsStateWithLifecycle(initialValue = emptyList())
+    val categoriesState = categoryViewModel.categories.observeAsState(initial = emptyList())
+    val cardsState = creditCardViewModel.allCards.observeAsState(initial = emptyList())
     val categories = categoriesState.value
     val cards = cardsState.value
 

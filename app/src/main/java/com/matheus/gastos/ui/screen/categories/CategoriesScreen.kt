@@ -31,7 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matheus.gastos.viewmodel.CategoryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +48,7 @@ fun CategoriesScreen(
     onClose: () -> Unit = {},
     categoryId: Long = 0L
 ) {
-    val customCategoriesState = categoryViewModel.customCategories.collectAsStateWithLifecycle(initialValue = emptyList())
+    val customCategoriesState = categoryViewModel.customCategories.observeAsState(initial = emptyList())
     val customCategories = customCategoriesState.value
 
     Column(modifier = Modifier.fillMaxSize()) {

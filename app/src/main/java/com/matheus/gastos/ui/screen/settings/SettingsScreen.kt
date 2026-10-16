@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,7 +53,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.SettingsViewModel
@@ -67,9 +67,9 @@ fun SettingsScreen(
     creditCardViewModel: CreditCardViewModel,
     onNavigateToCategories: () -> Unit
 ) {
-    val themeMode = settingsViewModel.themeMode.collectAsStateWithLifecycle(initialValue = 0)
-    val accentColor = settingsViewModel.accentColor.collectAsStateWithLifecycle(initialValue = 0xFF6750A4.toInt())
-    val notificationsEnabled = settingsViewModel.notificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val themeMode = settingsViewModel.themeMode.observeAsState(initial = 0)
+    val accentColor = settingsViewModel.accentColor.observeAsState(initial = 0xFF6750A4.toInt())
+    val notificationsEnabled = settingsViewModel.notificationsEnabled.observeAsState(initial = true)
 
     var showColorPicker by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
