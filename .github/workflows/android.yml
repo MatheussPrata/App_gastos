@@ -24,16 +24,19 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Diagnostics - compiles and resolved compose deps
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g"
+
+    - name: Show Kotlin errors
+      if: failure()
       run: |
-        ./gradlew :app:dependencies --configuration debugCompileClasspath --no-daemon \
-          -Dorg.gradle.jvmargs="-Xmx3g" 2>&1 | grep -iE "compose|material|navigation|FAILED|Could not" | head -80 || true
-        echo "===== BUILD ====="
-        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g" --stacktrace 2>&1 | tail -120
+        echo "===== ERROS DE COMPILACAO ====="
+        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g" 2>&1 \
+          | grep -E "^e: |error:|Unresolved|Cannot|none of the following" | head -100 || true
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
-      if: always()
+      if: success()
       with:
         name: app-debug
         path: app/build/outputs/apk/debug/app-debug.apk
