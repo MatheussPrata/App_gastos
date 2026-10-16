@@ -1,7 +1,5 @@
 package com.matheus.gastos.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asFlow
@@ -23,9 +21,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.util.UUID
+import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.ViewModel
+import javax.inject.Inject
 
-class CategoryViewModel(application: Application, private val repo: CategoryRepository) : AndroidViewModel(application) {
+@HiltViewModel
+class CategoryViewModel @Inject constructor(private val repo: CategoryRepository) : ViewModel() {
     val categories = repo.getAll().asLiveData(viewModelScope.coroutineContext)
     val defaultCategories = repo.getDefaults().asLiveData(viewModelScope.coroutineContext)
     val customCategories = repo.getCustom().asLiveData(viewModelScope.coroutineContext)
@@ -36,7 +37,8 @@ class CategoryViewModel(application: Application, private val repo: CategoryRepo
     suspend fun deleteById(id: Long) = repo.deleteById(id)
 }
 
-class CreditCardViewModel(application: Application, private val repo: CreditCardRepository) : AndroidViewModel(application) {
+@HiltViewModel
+class CreditCardViewModel @Inject constructor(private val repo: CreditCardRepository) : ViewModel() {
     val activeCards = repo.getActive().asLiveData(viewModelScope.coroutineContext)
     val allCards = repo.getAll().asLiveData(viewModelScope.coroutineContext)
 
@@ -47,7 +49,8 @@ class CreditCardViewModel(application: Application, private val repo: CreditCard
     suspend fun getById(id: Long) = repo.getById(id)
 }
 
-class TransactionViewModel(application: Application, private val repo: TransactionRepository) : AndroidViewModel(application) {
+@HiltViewModel
+class TransactionViewModel @Inject constructor(private val repo: TransactionRepository) : ViewModel() {
     private val _selectedMonth = MutableLiveData<Long>(System.currentTimeMillis())
     val selectedMonth: LiveData<Long> = _selectedMonth
 
@@ -134,7 +137,8 @@ class TransactionViewModel(application: Application, private val repo: Transacti
     }
 }
 
-class BudgetLimitViewModel(application: Application, private val repo: BudgetLimitRepository) : AndroidViewModel(application) {
+@HiltViewModel
+class BudgetLimitViewModel @Inject constructor(private val repo: BudgetLimitRepository) : ViewModel() {
     val activeLimits = repo.getActiveWithCategories().asLiveData(viewModelScope.coroutineContext)
 
     suspend fun insert(limit: BudgetLimit) = repo.insert(limit)
@@ -144,7 +148,8 @@ class BudgetLimitViewModel(application: Application, private val repo: BudgetLim
     suspend fun getById(id: Long) = repo.getById(id)
 }
 
-class SettingsViewModel(application: Application, private val repo: SettingsRepository) : AndroidViewModel(application) {
+@HiltViewModel
+class SettingsViewModel @Inject constructor(private val repo: SettingsRepository) : ViewModel() {
     private val _themeMode = MutableLiveData<Int>(0)
     val themeMode: LiveData<Int> = _themeMode
 

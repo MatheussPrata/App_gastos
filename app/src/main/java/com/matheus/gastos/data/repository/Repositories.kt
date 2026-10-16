@@ -14,6 +14,7 @@ import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.AppSettings
 import com.matheus.gastos.data.entity.BudgetPeriod
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.Date
 import java.util.UUID
 

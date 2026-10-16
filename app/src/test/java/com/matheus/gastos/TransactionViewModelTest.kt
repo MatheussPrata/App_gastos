@@ -1,11 +1,9 @@
 package com.matheus.gastos
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.Observer
-import com.matheus.gastos.data.entity.Transaction
-import com.matheus.gastos.data.repository.TransactionRepository
 import com.matheus.gastos.data.dao.TransactionDao
+import com.matheus.gastos.data.repository.TransactionRepository
+import com.matheus.gastos.viewmodel.TransactionViewModel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -16,7 +14,6 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.MockitoJUnit
 import org.mockito.junit.MockitoRule
-import java.util.Date
 
 class TransactionViewModelTest {
 
@@ -33,19 +30,19 @@ class TransactionViewModelTest {
 
     @Before
     fun setup() {
-        viewModel = TransactionViewModel(androidx.test.core.app.ApplicationProvider.getApplicationContext(), repository)
+        viewModel = TransactionViewModel(repository)
     }
 
     @Test
-    fun `totalExpenses returns 0 when no transactions` = runBlocking {
-        val dao = mock<TransactionDao>()
-        when(dao.getTotalExpenses(anyLong(), anyLong())).thenReturn(flowOf(0.0))
-        when(dao.getTotalIncome(anyLong(), anyLong())).thenReturn(flowOf(0.0))
-        
+    fun `totalExpenses returns 0 when no transactions`() = runBlocking {
+        val dao = mock(TransactionDao::class.java)
+        `when`(dao.getTotalExpenses(anyLong(), anyLong())).thenReturn(flowOf(0.0))
+        `when`(dao.getTotalIncome(anyLong(), anyLong())).thenReturn(flowOf(0.0))
+
         val repo = TransactionRepository(dao)
-        val viewModel = TransactionViewModel(androidx.test.core.app.ApplicationProvider.getApplicationContext(), repo)
-        
-        val totalExpenses = viewModel.totalExpenses.getValue()
-        assertEquals(0.0, totalExpenses, 0.001)
+        val vm = TransactionViewModel(repo)
+
+        val totalExpenses = vm.totalExpenses.getValue()
+        assertEquals(0.0, totalExpenses ?: 0.0, 0.001)
     }
 }
