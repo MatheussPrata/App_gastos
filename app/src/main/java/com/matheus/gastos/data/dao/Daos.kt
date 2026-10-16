@@ -40,6 +40,12 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE isDefault = 0 ORDER BY sortOrder, name")
     fun getCustom(): Flow<List<Category>>
+
+    @Query("SELECT * FROM categories WHERE isExpenseDefault = :isExpense ORDER BY sortOrder, name")
+    fun getByType(isExpense: Boolean): Flow<List<Category>>
+
+    @Query("SELECT COUNT(*) FROM categories")
+    suspend fun count(): Int
 }
 
 @Dao

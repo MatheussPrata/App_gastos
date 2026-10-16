@@ -35,6 +35,8 @@ class CategoryViewModel @Inject constructor(private val repo: CategoryRepository
     suspend fun update(category: Category) = repo.update(category)
     suspend fun delete(category: Category) = repo.delete(category)
     suspend fun deleteById(id: Long) = repo.deleteById(id)
+    suspend fun getById(id: Long) = repo.getById(id)
+    suspend fun seedDefaultsIfEmpty() = repo.seedDefaultsIfEmpty()
 }
 
 @HiltViewModel
@@ -134,6 +136,28 @@ class TransactionViewModel @Inject constructor(private val repo: TransactionRepo
         creditCardId: Long?
     ) {
         repo.createInstallments(baseTransaction, totalInstallments, categoryId, subcategoryId, creditCardId)
+    }
+
+    companion object {
+        /**
+         * Converte o texto digitado ("10", "10,50", "10.50", "1.234,56") em Double.
+         * Retorna null quando o valor é inválido ou não positivo.
+         */
+        fun parseAmount(input: String): Double? {
+            val trimmed = input.trim()
+            if (trimmed.isEmpty()) return null
+
+            val normalized = when {
+                trimmed.contains(',') && trimmed.contains('.') ->
+                    // "1.234,56" -> "1234.56"
+                    trimmed.replace(".", "").replace(',', '.')
+                trimmed.contains(',') -> trimmed.replace(',', '.')
+                else -> trimmed
+            }
+
+            val value = normalized.toDoubleOrNull() ?: return null
+            return if (value > 0.0) value else null
+        }
     }
 }
 

@@ -24,18 +24,21 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -48,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -74,6 +78,8 @@ fun ExpensesScreen(
     val cardMap = cards.associateBy { it.id }
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -214,7 +220,7 @@ fun ExpensesScreen(
                                     IconButton(onClick = { onEditExpense(transaction.id) }) {
                                         Icon(Icons.Filled.Edit, contentDescription = "Editar")
                                     }
-                                    IconButton(onClick = { }) {
+                                    IconButton(onClick = { pendingDeleteId = transaction.id }) {
                                         Icon(Icons.Filled.Delete, contentDescription = "Excluir")
                                     }
                                 }
@@ -224,6 +230,27 @@ fun ExpensesScreen(
                 }
             }
         }
+    }
+
+    pendingDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text("Excluir transação") },
+            text = { Text("Deseja realmente excluir esta transação?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        viewModel.deleteById(id)
+                        pendingDeleteId = null
+                    }
+                }) {
+                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancelar") }
+            }
+        )
     }
 }
 

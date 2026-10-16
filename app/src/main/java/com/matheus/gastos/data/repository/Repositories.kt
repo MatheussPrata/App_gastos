@@ -26,7 +26,61 @@ class CategoryRepository(private val dao: CategoryDao) {
     fun getAll(): Flow<List<Category>> = dao.getAll()
     fun getDefaults(): Flow<List<Category>> = dao.getDefaults()
     fun getCustom(): Flow<List<Category>> = dao.getCustom()
+    fun getByType(isExpense: Boolean): Flow<List<Category>> = dao.getByType(isExpense)
     suspend fun getById(id: Long) = dao.getById(id)
+    suspend fun count(): Int = dao.count()
+
+    /**
+     * Popula as categorias padrão apenas na primeira execução (banco vazio).
+     * Categorias de GASTO têm [Category.isExpenseDefault] = true e as de ENTRADA false.
+     */
+    suspend fun seedDefaultsIfEmpty() {
+        if (dao.count() > 0) return
+        dao.insertAll(defaultCategories())
+    }
+
+    companion object {
+        fun defaultCategories(): List<Category> {
+            val expenses = listOf(
+                "Alimentação" to "restaurant",
+                "Transporte" to "directions_car",
+                "Moradia" to "home",
+                "Saúde" to "local_hospital",
+                "Lazer" to "sports_esports",
+                "Compras" to "shopping_bag",
+                "Contas" to "receipt_long",
+                "Educação" to "school",
+                "Outros" to "category"
+            )
+            val incomes = listOf(
+                "Salário" to "payments",
+                "Freelance" to "work",
+                "Investimentos" to "trending_up",
+                "Presente" to "card_giftcard",
+                "Reembolso" to "undo",
+                "Outros" to "category"
+            )
+            val expenseCategories = expenses.mapIndexed { index, (name, icon) ->
+                Category(
+                    name = name,
+                    icon = icon,
+                    isDefault = true,
+                    isExpenseDefault = true,
+                    sortOrder = index
+                )
+            }
+            val incomeCategories = incomes.mapIndexed { index, (name, icon) ->
+                Category(
+                    name = name,
+                    icon = icon,
+                    isDefault = true,
+                    isExpenseDefault = false,
+                    sortOrder = index
+                )
+            }
+            return expenseCategories + incomeCategories
+        }
+    }
 }
 
 class SubcategoryRepository(private val dao: SubcategoryDao) {

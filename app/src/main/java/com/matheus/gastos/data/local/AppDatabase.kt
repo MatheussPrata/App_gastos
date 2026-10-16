@@ -28,7 +28,7 @@ import com.matheus.gastos.data.entity.Transaction
         BudgetLimit::class,
         AppSettings::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

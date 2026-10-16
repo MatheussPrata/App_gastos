@@ -13,10 +13,29 @@ data class Category(
     val icon: String = "category",
     val color: Int = 0xFF6750A4.toInt(),
     val isDefault: Boolean = false,
+    /**
+     * true  -> categoria de GASTO
+     * false -> categoria de ENTRADA
+     * Mantém compatibilidade com o app 0.1.0 (categorias antigas ficavam em gasto).
+     */
+    val isExpenseDefault: Boolean = true,
     val sortOrder: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * Forma de pagamento da transação. Persistido como String (nome do enum)
+ * via [com.matheus.gastos.data.local.Converters].
+ */
+enum class PaymentMethod(val label: String) {
+    DINHEIRO("Dinheiro"),
+    CARTAO("Cartão"),
+    PIX("Pix"),
+    DEBITO("Débito"),
+    BOLETO("Boleto"),
+    TRANSFERENCIA("Transferência")
+}
 
 @Entity(tableName = "subcategories")
 data class Subcategory(
@@ -65,6 +84,7 @@ data class Transaction(
     val categoryId: Long? = null,
     val subcategoryId: Long? = null,
     val creditCardId: Long? = null,
+    val paymentMethod: PaymentMethod = PaymentMethod.DINHEIRO,
     val isInstallment: Boolean = false,
     val installmentNumber: Int = 1,
     val totalInstallments: Int = 1,
