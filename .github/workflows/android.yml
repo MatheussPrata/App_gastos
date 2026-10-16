@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
     - uses: actions/checkout@v4
@@ -24,8 +24,12 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g"
+    - name: Diagnostics - compiles and resolved compose deps
+      run: |
+        ./gradlew :app:dependencies --configuration debugCompileClasspath --no-daemon \
+          -Dorg.gradle.jvmargs="-Xmx3g" 2>&1 | grep -iE "compose|material|navigation|FAILED|Could not" | head -80 || true
+        echo "===== BUILD ====="
+        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g" --stacktrace 2>&1 | tail -120
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
@@ -34,29 +38,3 @@ jobs:
         name: app-debug
         path: app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
-
-  release:
-    needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Build Release APK
-      run: ./gradlew assembleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx3g"
-
-    - name: Upload Release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release
-        path: app/build/outputs/apk/release/app-release.apk
-        retention-days: 30
