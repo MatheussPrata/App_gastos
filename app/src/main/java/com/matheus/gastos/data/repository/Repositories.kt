@@ -32,12 +32,23 @@ class CategoryRepository(private val dao: CategoryDao) {
     suspend fun count(): Int = dao.count()
 
     /**
-     * Popula as categorias padrão apenas na primeira execução (banco vazio).
+     * Garante que as categorias padrão existam, mesmo em bancos antigos/parciais.
+     *
+     * É IDEMPOTENTE: insere apenas os pares (nome, tipo) que ainda não existem.
+     * Antes abortava quando o banco tinha qualquer categoria, o que impedia o seed
+     * em instalações atualizadas (usuário ficava só com categorias vazias).
+     *
      * Categorias de GASTO têm [Category.isExpenseDefault] = true e as de ENTRADA false.
      */
     suspend fun seedDefaultsIfEmpty() {
-        if (dao.count() > 0) return
-        dao.insertAll(defaultCategories())
+        val existing = dao.getAllOnce()
+        val existingKeys = existing.map { it.name.trim().lowercase() to it.isExpenseDefault }.toSet()
+        val missing = defaultCategories().filter {
+            (it.name.trim().lowercase() to it.isExpenseDefault) !in existingKeys
+        }
+        if (missing.isNotEmpty()) {
+            dao.insertAll(missing)
+        }
     }
 
     companion object {

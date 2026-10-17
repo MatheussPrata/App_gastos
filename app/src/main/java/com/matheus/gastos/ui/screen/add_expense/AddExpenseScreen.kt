@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.matheus.gastos.data.entity.PaymentMethod
 import com.matheus.gastos.data.entity.Transaction
+import com.matheus.gastos.ui.components.SelectorField
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
@@ -191,44 +192,32 @@ fun AddExpenseScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            OutlinedTextField(
+            SelectorField(
                 value = selectedCategoryId
                     ?.let { id -> filteredCategories.firstOrNull { it.id == id }?.name }
                     ?: "Selecionar",
-                onValueChange = {},
-                label = { Text("Categoria") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showCategoryDialog = true },
-                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Categoria") },
-                readOnly = true
+                label = "Categoria",
+                onClick = { showCategoryDialog = true },
+                contentDescription = "Categoria"
             )
 
             // Método de pagamento — sempre visível.
-            OutlinedTextField(
+            SelectorField(
                 value = paymentMethod.label,
-                onValueChange = {},
-                label = { Text("Método de pagamento") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showPaymentMethodDialog = true },
-                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Método") },
-                readOnly = true
+                label = "Método de pagamento",
+                onClick = { showPaymentMethodDialog = true },
+                contentDescription = "Método"
             )
 
             // Cartão: só para GASTO e quando o método for Cartão.
             if (isExpense && paymentMethod == PaymentMethod.CARTAO) {
-                OutlinedTextField(
+                SelectorField(
                     value = selectedCardId
                         ?.let { id -> cards.firstOrNull { it.id == id }?.name }
                         ?: "Nenhum",
-                    onValueChange = {},
-                    label = { Text("Cartão") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showCardDialog = true },
-                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = "Cartão") },
-                    readOnly = true
+                    label = "Cartão",
+                    onClick = { showCardDialog = true },
+                    contentDescription = "Cartão"
                 )
             }
 
