@@ -4,6 +4,7 @@ import com.matheus.gastos.data.dao.CategoryDao
 import com.matheus.gastos.data.dao.SubcategoryDao
 import com.matheus.gastos.data.dao.CreditCardDao
 import com.matheus.gastos.data.dao.TransactionDao
+import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.BudgetLimitDao
 import com.matheus.gastos.data.dao.AppSettingsDao
 import com.matheus.gastos.data.entity.Category
@@ -166,6 +167,21 @@ class TransactionRepository(private val dao: TransactionDao) {
             installments.add(installment)
         }
         dao.insertAll(installments)
+    }
+
+    fun getMonthlyBalances(): Flow<List<MonthlyBalance>> = dao.getMonthlyBalances()
+
+    fun getMonthlyBalancesInRange(startDate: Long, endDate: Long): Flow<List<MonthlyBalance>> = dao.getMonthlyBalancesInRange(startDate, endDate)
+
+    fun getTransactionsWithRunningBalance(startDate: Long, endDate: Long): Flow<List<Pair<Transaction, Double>>> {
+        return dao.getByDateRange(startDate, endDate).map { transactions ->
+            val sorted = transactions.sortedBy { it.date }
+            var runningBalance = 0.0
+            sorted.map { tx ->
+                runningBalance += if (tx.isExpense) -tx.amount else tx.amount
+                tx to runningBalance
+            }.reversed() // back to DESC order for UI
+        }
     }
 }
 

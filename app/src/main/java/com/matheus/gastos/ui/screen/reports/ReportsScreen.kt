@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.Category
@@ -62,6 +63,7 @@ fun ReportsScreen(
     val totalExpenses = transactionViewModel.totalExpenses.observeAsState(initial = 0.0)
     val totalIncome = transactionViewModel.totalIncome.observeAsState(initial = 0.0)
     val balance = transactionViewModel.balance.observeAsState(initial = 0.0)
+    val monthlyBalances = transactionViewModel.monthlyBalances.observeAsState(initial = emptyList())
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val categories = categoryViewModel.categories.observeAsState(initial = emptyList())
@@ -96,6 +98,7 @@ fun ReportsScreen(
                 TabButton(text = "Por categoria", selected = selectedTab == 0, onClick = { selectedTab = 0 }, modifier = Modifier.weight(1f))
                 TabButton(text = "Por cartão", selected = selectedTab == 1, onClick = { selectedTab = 1 }, modifier = Modifier.weight(1f))
                 TabButton(text = "Resumo", selected = selectedTab == 2, onClick = { selectedTab = 2 }, modifier = Modifier.weight(1f))
+                TabButton(text = "Histórico", selected = selectedTab == 3, onClick = { selectedTab = 3 }, modifier = Modifier.weight(1f))
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -124,7 +127,7 @@ fun ReportsScreen(
                             )
                         }
                     }
-                    else -> {
+                    2 -> {
                         item {
                             SummaryCard(
                                 title = "Total de gastos",
@@ -148,6 +151,11 @@ fun ReportsScreen(
                                 color = if (balance.value >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error,
                                 icon = if (balance.value >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
                             )
+                        }
+                    }
+                    else -> {
+                        items(monthlyBalances.value) { mb ->
+                            MonthlyBalanceItem(mb = mb)
                         }
                     }
                 }
@@ -347,6 +355,55 @@ fun SummaryCard(
                 fontWeight = FontWeight.Bold,
                 color = color
             )
+        }
+    }
+}
+
+@Composable
+fun MonthlyBalanceItem(mb: MonthlyBalance) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = mb.month,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Receitas: ${NumberFormat.getCurrencyInstance(Locale.getDefault()).format(mb.income)}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF4CAF50.toInt())
+                    )
+                    Text(
+                        text = "Gastos: ${NumberFormat.getCurrencyInstance(Locale.getDefault()).format(mb.expenses)}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Saldo: ${NumberFormat.getCurrencyInstance(Locale.getDefault()).format(mb.balance)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ import com.matheus.gastos.data.repository.CreditCardRepository
 import com.matheus.gastos.data.repository.TransactionRepository
 import com.matheus.gastos.data.repository.BudgetLimitRepository
 import com.matheus.gastos.data.repository.SettingsRepository
+import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -137,6 +138,21 @@ class TransactionViewModel @Inject constructor(private val repo: TransactionRepo
     ) {
         repo.createInstallments(baseTransaction, totalInstallments, categoryId, subcategoryId, creditCardId)
     }
+
+    val monthlyBalances: LiveData<List<MonthlyBalance>> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { repo.getMonthlyBalances() ?: kotlinx.coroutines.flow.flowOf(emptyList()) }
+        .asLiveData(viewModelScope.coroutineContext)
+
+    val currentMonthTransactionsWithBalance: LiveData<List<Pair<Transaction, Double>>> = _selectedMonth
+        .asFlow()
+        .distinctUntilChanged()
+        .flatMapLatest { month ->
+            val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+            repo.getTransactionsWithRunningBalance(start, end) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+        }
+        .asLiveData(viewModelScope.coroutineContext)
 
     companion object {
         /**

@@ -12,6 +12,15 @@ import com.matheus.gastos.data.entity.AppSettings
 import com.matheus.gastos.data.entity.BudgetPeriod
 import kotlinx.coroutines.flow.Flow
 
+data class MonthlyBalance(
+    val month: String,
+    val expenses: Double,
+    val income: Double
+) {
+    val balance: Double
+        get() = income - expenses
+}
+
 @Dao
 interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -151,6 +160,12 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getById(id: Long): Transaction?
+
+    @Query("SELECT strftime('%Y-%m', date/1000, 'unixepoch', 'localtime') as month, SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0 END) as expenses, SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0 END) as income FROM transactions GROUP BY month ORDER BY month DESC")
+    fun getMonthlyBalances(): Flow<List<MonthlyBalance>>
+
+    @Query("SELECT strftime('%Y-%m', date/1000, 'unixepoch', 'localtime') as month, SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0 END) as expenses, SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0 END) as income FROM transactions WHERE date >= :startDate AND date <= :endDate GROUP BY month ORDER BY month DESC")
+    fun getMonthlyBalancesInRange(startDate: Long, endDate: Long): Flow<List<MonthlyBalance>>
 
     @RawQuery(observedEntities = [Transaction::class])
     fun getAllTransactions(query: SimpleSQLiteQuery): Flow<List<Transaction>>

@@ -47,6 +47,14 @@ private val CardColorOptions = listOf(
     0xFF3F51B5.toInt(), 0xFF00BCD4.toInt(), 0xFF8BC34A.toInt(), 0xFF795548.toInt()
 )
 
+private fun formatAmount(value: Double): String {
+    return if (value == value.toLong().toDouble()) {
+        value.toLong().toString()
+    } else {
+        String.format(java.util.Locale.US, "%.2f", value)
+    }
+}
+
 /**
  * Popup reutilizável para adicionar/editar um "cartão".
  * O cartão aqui serve apenas para ORGANIZAR as contas: por isso a UI expõe
@@ -64,6 +72,8 @@ fun AddCardDialog(
     var name by remember { mutableStateOf("") }
     val color = remember { mutableIntStateOf(0xFF6750A4.toInt()) }
     var limitAmount by remember { mutableStateOf("") }
+    var closingDay by remember { mutableStateOf("1") }
+    var dueDay by remember { mutableStateOf("10") }
     var isActive by remember { mutableStateOf(true) }
 
     LaunchedEffect(cardId) {
@@ -72,7 +82,9 @@ fun AddCardDialog(
             if (card != null) {
                 name = card.name
                 color.intValue = card.color
-                limitAmount = if (card.limitAmount > 0.0) card.limitAmount.toString() else ""
+                limitAmount = if (card.limitAmount > 0.0) formatAmount(card.limitAmount) else ""
+                closingDay = card.closingDay.toString()
+                dueDay = card.dueDay.toString()
                 isActive = card.isActive
             }
         }
@@ -107,11 +119,45 @@ fun AddCardDialog(
                     onValueChange = { input ->
                         limitAmount = input.filter { it.isDigit() || it == '.' || it == ',' }
                     },
-                    label = { Text("Limite (R$, opcional)") },
+                    label = { Text("Limite (R$)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions.Default
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    )
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = closingDay,
+                        onValueChange = { input ->
+                            closingDay = input.filter { it.isDigit() }.take(2)
+                        },
+                        label = { Text("Fechamento") },
+                        suffix = { Text("dia") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        )
+                    )
+                    OutlinedTextField(
+                        value = dueDay,
+                        onValueChange = { input ->
+                            dueDay = input.filter { it.isDigit() }.take(2)
+                        },
+                        label = { Text("Vencimento") },
+                        suffix = { Text("dia") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        )
+                    )
+                }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -162,12 +208,16 @@ fun AddCardDialog(
             TextButton(
                 enabled = name.isNotBlank(),
                 onClick = {
-                    val limit = limitAmount.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    val limit = limitAmount.replace(",", ".").toDoubleOrNull() ?: 0.0
+                    val closing = closingDay.toIntOrNull()?.coerceIn(1, 31) ?: 1
+                    val due = dueDay.toIntOrNull()?.coerceIn(1, 31) ?: 10
                     val card = CreditCard(
                         id = if (editing) cardId else 0,
                         name = name.trim(),
                         color = color.intValue,
                         limitAmount = limit,
+                        closingDay = closing,
+                        dueDay = due,
                         isActive = isActive
                     )
                     scope.launch {

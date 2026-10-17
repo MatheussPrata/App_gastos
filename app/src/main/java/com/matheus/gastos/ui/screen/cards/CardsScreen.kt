@@ -150,6 +150,11 @@ fun CardsScreen(
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
+                                            Text(
+                                                text = "Fecha dia ${card.closingDay} · Vence dia ${card.dueDay}",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
