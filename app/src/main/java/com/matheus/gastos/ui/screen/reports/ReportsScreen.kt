@@ -3,6 +3,8 @@ package com.matheus.gastos.ui.screen.reports
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -121,6 +124,17 @@ fun ReportsScreen(
     var selectedCategoryIndex by remember(selectedTab) { mutableStateOf<Int?>(null) }
     var selectedCardIndex by remember(selectedTab) { mutableStateOf<Int?>(null) }
 
+    // Filtro do relatorio "Por cartao": null = todos os cartoes, senao um cartao especifico
+    // (nesse caso o conteudo passa a ser o gasto POR CATEGORIA daquele cartao).
+    var cardFilter by remember { mutableStateOf<Long?>(null) }
+    var selectedCardCategoryIndex by remember { mutableStateOf<Int?>(null) }
+    val cardCategoryExpenses = transactionViewModel.expensesByCategoryForCard
+        .observeAsState(initial = emptyList())
+
+    LaunchedEffect(cardFilter) {
+        selectedCardCategoryIndex = null
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -150,6 +164,36 @@ fun ReportsScreen(
                 TabButton(text = "Histórico", selected = selectedTab == 3, onClick = { selectedTab = 3 }, modifier = Modifier.weight(1f))
             }
 
+            // Seletor de cartao (aba "Por cartao"): Todos ou um cartao especifico.
+            if (selectedTab == 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = cardFilter == null,
+                        onClick = {
+                            cardFilter = null
+                            transactionViewModel.setCardFilter(null)
+                        },
+                        label = { Text("Todos os cartões") }
+                    )
+                    cards.value.forEach { card ->
+                        FilterChip(
+                            selected = cardFilter == card.id,
+                            onClick = {
+                                cardFilter = card.id
+                                transactionViewModel.setCardFilter(card.id)
+                            },
+                            label = { Text(card.name) }
+                        )
+                    }
+                }
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // Swipe infinito: o indice real da visualizacao e `page % VIEW_COUNT`.
@@ -170,14 +214,29 @@ fun ReportsScreen(
                         selectedIndex = selectedCategoryIndex,
                         onSelect = { selectedCategoryIndex = it }
                     )
-                    1 -> CardTabContent(
-                        view = view,
-                        items = expensesByCard.value,
-                        cardMap = cardMap,
-                        totalExpenses = totalExpenses.value,
-                        selectedIndex = selectedCardIndex,
-                        onSelect = { selectedCardIndex = it }
-                    )
+                    1 -> if (cardFilter == null) {
+                        CardTabContent(
+                            view = view,
+                            items = expensesByCard.value,
+                            cardMap = cardMap,
+                            totalExpenses = totalExpenses.value,
+                            selectedIndex = selectedCardIndex,
+                            onSelect = { selectedCardIndex = it }
+                        )
+                    } else {
+                        // Cartao especifico: mostra o gasto por categoria daquele cartao.
+                        val items = cardCategoryExpenses.value
+                        val sum = items.sumOf { it.total }
+                        val map = categoryMap
+                        CategoryTabContent(
+                            view = view,
+                            items = items,
+                            categoryMap = map,
+                            totalExpenses = sum,
+                            selectedIndex = selectedCardCategoryIndex,
+                            onSelect = { selectedCardCategoryIndex = it }
+                        )
+                    }
                     2 -> SummaryTabContent(
                         view = view,
                         totalExpenses = totalExpenses.value,

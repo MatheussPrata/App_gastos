@@ -23,6 +23,7 @@ import com.matheus.gastos.util.monthStart
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -140,6 +141,32 @@ class TransactionViewModel @Inject constructor(private val repo: TransactionRepo
             repo.getExpensesByCard(start, end)
         }
         .asLiveData(viewModelScope.coroutineContext)
+
+    /** Cartao selecionado no relatorio "Por cartao"; null = todos os cartoes. */
+    private val _cardFilter = MutableStateFlow<Long?>(null)
+
+    fun setCardFilter(cardId: Long?) {
+        _cardFilter.value = cardId
+    }
+
+    /**
+     * Gastos POR CATEGORIA de um cartao especifico (filtro do relatorio "Por cartao").
+     * Reemite quando o mes ou o cartao selecionado muda.
+     */
+    val expensesByCategoryForCard: LiveData<List<TransactionDao.CategoryExpense>> =
+        combine(
+            _selectedMonth.asFlow(),
+            _cardFilter
+        ) { month, cardId -> month to cardId }
+            .flatMapLatest { (month, cardId) ->
+                if (cardId == null) {
+                    kotlinx.coroutines.flow.flowOf(emptyList())
+                } else {
+                    val (start, end) = TransactionRepository.getMonthBounds(java.util.Date(month))
+                    repo.getExpensesByCategoryForCard(start, end, cardId)
+                }
+            }
+            .asLiveData(viewModelScope.coroutineContext)
 
     suspend fun insert(transaction: Transaction) = repo.insert(transaction)
     suspend fun insertAll(transactions: List<Transaction>) = repo.insertAll(transactions)

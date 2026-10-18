@@ -57,7 +57,9 @@ fun MainScreen(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface
+                // surfaceContainer e derivado da cor de destaque em Theme.kt,
+                // entao a barra acompanha a troca de tema.
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
             ) {
                 mainScreens.forEach { screen ->
                     val isSelected = selectedScreen == screen

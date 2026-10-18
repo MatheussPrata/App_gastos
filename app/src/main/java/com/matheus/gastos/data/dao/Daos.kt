@@ -170,6 +170,9 @@ interface TransactionDao {
     @Query("SELECT creditCardId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND creditCardId IS NOT NULL GROUP BY creditCardId ORDER BY total DESC")
     fun getExpensesByCard(startDate: Long, endDate: Long): Flow<List<CardExpense>>
 
+    @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND creditCardId = :cardId AND categoryId IS NOT NULL GROUP BY categoryId ORDER BY total DESC")
+    fun getExpensesByCategoryForCard(startDate: Long, endDate: Long, cardId: Long): Flow<List<CategoryExpense>>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getById(id: Long): Transaction?
 

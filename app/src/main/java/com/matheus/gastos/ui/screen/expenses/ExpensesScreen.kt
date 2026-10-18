@@ -382,6 +382,15 @@ private fun TransactionItem(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        // Parcela atual / total em compras parceladas (ex.: "2/6").
+                        if (transaction.isInstallment && transaction.totalInstallments > 1) {
+                            Text(
+                                text = "Parcela ${transaction.installmentNumber}/${transaction.totalInstallments}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -438,6 +447,8 @@ private fun TransactionItem(
 @Composable
 private fun BalanceCard(currentBalance: Double) {
     val money = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    // Saldo negativo: card inteiro em vermelho, nao so o numero.
+    val negative = currentBalance < 0
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -445,7 +456,11 @@ private fun BalanceCard(currentBalance: Double) {
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = if (negative) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.primaryContainer
+            }
         )
     ) {
         Column(
@@ -457,24 +472,32 @@ private fun BalanceCard(currentBalance: Double) {
                 text = "Saldo do mes",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                color = if (negative) {
+                    MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                } else {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                }
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = money.format(currentBalance),
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (currentBalance >= 0) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (negative) {
+                    MaterialTheme.colorScheme.onErrorContainer
                 } else {
-                    MaterialTheme.colorScheme.error
+                    MaterialTheme.colorScheme.onPrimaryContainer
                 }
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (currentBalance >= 0) "Positivo" else "Negativo",
+                text = if (negative) "Negativo" else "Positivo",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                color = if (negative) {
+                    MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                } else {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                }
             )
         }
     }

@@ -206,6 +206,9 @@ class TransactionRepository(private val dao: TransactionDao) {
     fun getTotalIncome(startDate: Long, endDate: Long): Flow<Double?> = dao.getTotalIncome(startDate, endDate)
     fun getExpensesByCategory(startDate: Long, endDate: Long): Flow<List<TransactionDao.CategoryExpense>> = dao.getExpensesByCategory(startDate, endDate)
     fun getExpensesByCard(startDate: Long, endDate: Long): Flow<List<TransactionDao.CardExpense>> = dao.getExpensesByCard(startDate, endDate)
+
+    fun getExpensesByCategoryForCard(startDate: Long, endDate: Long, cardId: Long): Flow<List<TransactionDao.CategoryExpense>> =
+        dao.getExpensesByCategoryForCard(startDate, endDate, cardId)
     suspend fun getById(id: Long) = dao.getById(id)
 
     companion object {

@@ -103,23 +103,43 @@ internal fun Color.lerpTo(other: Color, fraction: Float): Color {
  * Deriva os tons de container a partir da cor de destaque.
  *
  * Antes só `primary` era trocado, então botões e o card de saldo (que usam
- * `primaryContainer`) continuavam roxos. Aqui a família inteira acompanha a cor escolhida.
+ * `primaryContainer`) continuavam roxos. Aqui a família inteira acompanha a cor escolhida,
+ * incluindo a do `secondaryContainer`, usada pelo indicador da barra de navegação.
  */
 @Composable
 private fun ColorScheme.withAccent(accent: Color, dark: Boolean): ColorScheme {
+    val secondary = if (dark) accent.lerpTo(Color.White, 0.35f) else accent.lerpTo(Color.Black, 0.25f)
     return if (dark) {
         copy(
             primary = accent,
             onPrimary = if (accent.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White,
             primaryContainer = accent.lerpTo(Color.Black, 0.55f),
-            onPrimaryContainer = accent.lerpTo(Color.White, 0.82f)
+            onPrimaryContainer = accent.lerpTo(Color.White, 0.82f),
+            secondary = secondary,
+            onSecondary = if (secondary.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White,
+            secondaryContainer = accent.lerpTo(Color.Black, 0.70f),
+            onSecondaryContainer = accent.lerpTo(Color.White, 0.90f),
+            tertiary = secondary,
+            tertiaryContainer = accent.lerpTo(Color.Black, 0.70f),
+            onTertiaryContainer = accent.lerpTo(Color.White, 0.90f),
+            // Fundo da barra de navegacao: leve tingimento da cor escolhida.
+            surfaceContainer = Color(0xFF1C1B1F).lerpTo(accent, 0.14f)
         )
     } else {
         copy(
             primary = accent,
             onPrimary = if (accent.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White,
             primaryContainer = accent.lerpTo(Color.White, 0.80f),
-            onPrimaryContainer = accent.lerpTo(Color.Black, 0.55f)
+            onPrimaryContainer = accent.lerpTo(Color.Black, 0.55f),
+            secondary = secondary,
+            onSecondary = if (secondary.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White,
+            secondaryContainer = accent.lerpTo(Color.White, 0.86f),
+            onSecondaryContainer = accent.lerpTo(Color.Black, 0.60f),
+            tertiary = secondary,
+            tertiaryContainer = accent.lerpTo(Color.White, 0.86f),
+            onTertiaryContainer = accent.lerpTo(Color.Black, 0.60f),
+            // Fundo da barra de navegacao: leve tingimento da cor escolhida.
+            surfaceContainer = Color(0xFFFEFFFE).lerpTo(accent, 0.08f)
         )
     }
 }

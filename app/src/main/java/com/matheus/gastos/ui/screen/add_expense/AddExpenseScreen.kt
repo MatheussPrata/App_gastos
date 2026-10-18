@@ -57,6 +57,7 @@ import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -296,13 +297,25 @@ fun AddExpenseScreen(
                                     isExpense = isExpense,
                                     categories = categories
                                 )
+                            // Compra no cartao apos o fechamento cai na fatura do mes seguinte.
+                            // So no lancamento novo: ao editar, a data ja foi ajustada.
+                            val effectiveDate = if (
+                                !editing && isExpense &&
+                                paymentMethod == PaymentMethod.CARTAO && selectedCardId != null
+                            ) {
+                                val closing = cards.firstOrNull { it.id == selectedCardId }
+                                    ?.closingDay ?: 0
+                                adjustDateForCardClosing(date, closing)
+                            } else {
+                                date
+                            }
                             scope.launch {
                                 saveTransaction(
                                     editing = editing,
                                     expenseId = expenseId,
                                     description = description.trim(),
                                     amount = parsedAmount,
-                                    date = date,
+                                    date = effectiveDate,
                                     isExpense = isExpense,
                                     categoryId = resolvedCategoryId,
                                     cardId = if (isExpense && paymentMethod == PaymentMethod.CARTAO) selectedCardId else null,
@@ -420,6 +433,23 @@ private fun PaymentMethodDialog(
  */
 internal fun fallbackCategoryId(isExpense: Boolean, categories: List<Category>): Long? =
     categories.firstOrNull { it.isExpenseDefault == isExpense && it.name == "Outros" }?.id
+
+/**
+ * Compra no cartao depois do dia de fechamento pertence a fatura do mes seguinte.
+ *
+ * Mantem o dia original e avanca um mes (ex.: fechamento dia 20 + compra dia 25 -> 25 do mes
+ * seguinte), para que a compra caia no mes/relatorio correto.
+ */
+internal fun adjustDateForCardClosing(date: Long, closingDay: Int): Long {
+    if (closingDay !in 1..31) return date
+    val cal = Calendar.getInstance().apply { timeInMillis = date }
+    return if (cal.get(Calendar.DAY_OF_MONTH) > closingDay) {
+        cal.add(Calendar.MONTH, 1)
+        cal.timeInMillis
+    } else {
+        date
+    }
+}
 
 private suspend fun saveTransaction(
     editing: Boolean,
