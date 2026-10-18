@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -68,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.Transaction
+import com.matheus.gastos.viewmodel.BudgetLimitViewModel
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
@@ -91,10 +93,14 @@ fun ExpensesScreen(
     categoryViewModel: CategoryViewModel,
     creditCardViewModel: CreditCardViewModel,
     onAddExpense: () -> Unit,
-    onEditExpense: (Long) -> Unit
+    onEditExpense: (Long) -> Unit,
+    budgetLimitViewModel: BudgetLimitViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val selectedMonthState = viewModel.selectedMonth.observeAsState(initial = monthStart(System.currentTimeMillis()))
     val selectedMonth: Long = selectedMonthState.value
+
+    // Alertas de limites do mes seguinte (banner na home).
+    val nextMonthAlerts = budgetLimitViewModel.nextMonthAlerts.observeAsState(initial = emptyList())
 
     // Janela fixa de meses: índice 0 = 24 meses atrás, índice 24 = mês atual, índice 48 = +24 meses.
     val centerPage = 24
@@ -251,6 +257,9 @@ fun ExpensesScreen(
             if (page == pagerState.currentPage) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     BalanceCard(currentBalance = currentBalance)
+
+                    // Alerta: limites mensais JA estourados no mes seguinte (ex.: parcelas agendadas).
+                    NextMonthLimitBanner(alerts = nextMonthAlerts.value)
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -447,8 +456,10 @@ private fun TransactionItem(
 @Composable
 private fun BalanceCard(currentBalance: Double) {
     val money = NumberFormat.getCurrencyInstance(Locale.getDefault())
-    // Saldo negativo: card inteiro em vermelho, nao so o numero.
+    // Saldo negativo: card inteiro em vermelho VIVO (o errorContainer padrao do Material
+    // e rosado/claro demais e parecia desbotado).
     val negative = currentBalance < 0
+    val negativeBg = Color(0xFFD32F2F)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -456,11 +467,7 @@ private fun BalanceCard(currentBalance: Double) {
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (negative) {
-                MaterialTheme.colorScheme.errorContainer
-            } else {
-                MaterialTheme.colorScheme.primaryContainer
-            }
+            containerColor = if (negative) negativeBg else MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Column(
@@ -473,7 +480,7 @@ private fun BalanceCard(currentBalance: Double) {
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (negative) {
-                    MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                    Color.White.copy(alpha = 0.85f)
                 } else {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 }
@@ -483,22 +490,70 @@ private fun BalanceCard(currentBalance: Double) {
                 text = money.format(currentBalance),
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (negative) {
-                    MaterialTheme.colorScheme.onErrorContainer
-                } else {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                }
+                color = if (negative) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (negative) "Negativo" else "Positivo",
                 fontSize = 14.sp,
                 color = if (negative) {
-                    MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                    Color.White.copy(alpha = 0.75f)
                 } else {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 }
             )
+        }
+    }
+}
+
+/**
+ * Banner na home avisando que um limite mensal JA estourou no mes seguinte
+ * (por exemplo, por parcelas agendadas para aquele mes).
+ */
+@Composable
+private fun NextMonthLimitBanner(
+    alerts: List<com.matheus.gastos.data.repository.BudgetLimitRepository.NextMonthLimitAlert>
+) {
+    if (alerts.isEmpty()) return
+
+    val money = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFF3E0)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Warning,
+                contentDescription = "Alerta",
+                tint = Color(0xFFE65100)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Limites do próximo mês já estourados",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFE65100)
+                )
+                alerts.forEach { alert ->
+                    Text(
+                        text = "${alert.categoryName}: ${money.format(alert.spentAmount)} de " +
+                            money.format(alert.limitAmount),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

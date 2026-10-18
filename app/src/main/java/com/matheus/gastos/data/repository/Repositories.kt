@@ -381,6 +381,54 @@ class BudgetLimitRepository(
     fun getByCategory(categoryId: Long): Flow<List<BudgetLimit>> = dao.getByCategory(categoryId)
     suspend fun getById(id: Long) = dao.getById(id)
 
+    /** Limite ja estourado em um mes futuro (ex.: parcelas agendadas para o mes que vem). */
+    data class NextMonthLimitAlert(
+        val categoryName: String,
+        val limitAmount: Double,
+        val spentAmount: Double
+    )
+
+    /**
+     * Limites mensais cujo gasto JA AGENDADO para o mes seguinte passa do limite.
+     *
+     * Serve para avisar na tela inicial que o proximo mes ja nasce estourado —
+     * hoje isso só aparecia se o usuario abrisse a tela de limites.
+     */
+    fun nextMonthOverLimit(): Flow<List<NextMonthLimitAlert>> = dao.getActive().map { limits ->
+        if (limits.isEmpty()) return@map emptyList()
+
+        val cal = Calendar.getInstance().apply {
+            add(Calendar.MONTH, 1)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val start = cal.timeInMillis
+        cal.add(Calendar.MONTH, 1)
+        cal.add(Calendar.MILLISECOND, -1)
+        val end = cal.timeInMillis
+
+        val categories = categoryDao.getAllOnce().associateBy { it.id }
+        val byCategory = transactionDao.getExpensesByCategory(start, end).firstOrNull().orEmpty()
+            .associate { it.categoryId to it.total }
+
+        limits.mapNotNull { limit ->
+            if (limit.period != BudgetPeriod.MONTHLY) return@mapNotNull null
+            val spent = byCategory[limit.categoryId] ?: 0.0
+            if (limit.limitAmount > 0.0 && spent > limit.limitAmount) {
+                NextMonthLimitAlert(
+                    categoryName = categories[limit.categoryId]?.name ?: "Categoria ${limit.categoryId}",
+                    limitAmount = limit.limitAmount,
+                    spentAmount = spent
+                )
+            } else {
+                null
+            }
+        }
+    }
+
     data class BudgetLimitWithCategory(
         val budgetLimit: BudgetLimit,
         val categoryName: String?,

@@ -22,6 +22,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.TrendingDown
@@ -32,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -66,6 +69,8 @@ import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /** Quantidade de visualizacoes por aba: Lista -> Barras -> Pizza. */
@@ -152,6 +157,34 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Seletor de mes do relatorio (mesma selecao usada na tela inicial).
+            val reportMonth = transactionViewModel.selectedMonth
+                .observeAsState(initial = System.currentTimeMillis())
+            val monthLabel = remember(reportMonth.value) {
+                SimpleDateFormat("MMMM 'de' yyyy", Locale("pt", "BR"))
+                    .format(Date(reportMonth.value))
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = { transactionViewModel.shiftSelectedMonth(-1) }) {
+                    Icon(Icons.Filled.ChevronLeft, contentDescription = "Mes anterior")
+                }
+                Text(
+                    text = monthLabel.replaceFirstChar { it.uppercase() },
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                IconButton(onClick = { transactionViewModel.shiftSelectedMonth(1) }) {
+                    Icon(Icons.Filled.ChevronRight, contentDescription = "Proximo mes")
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -389,7 +422,7 @@ private fun SummaryTabContent(
     totalIncome: Double,
     balance: Double
 ) {
-    val incomeColor = Color(0xFF4CAF50.toInt())
+    val incomeColor = MaterialTheme.colorScheme.primary
     val expenseColor = MaterialTheme.colorScheme.error
 
     when (view) {
@@ -474,10 +507,10 @@ private fun HistoryTabContent(
                     ChartEntry(
                         label = mb.month,
                         value = mb.balance,
-                        color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
+                        color = if (mb.balance >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                     )
                 },
-                positiveColor = Color(0xFF4CAF50.toInt()),
+                positiveColor = MaterialTheme.colorScheme.primary,
                 negativeColor = MaterialTheme.colorScheme.error
             )
         }
@@ -822,7 +855,8 @@ fun MonthlyBalanceItem(mb: MonthlyBalance) {
                     Text(
                         text = "Receitas: ${money(mb.income)}",
                         fontSize = 12.sp,
-                        color = Color(0xFF4CAF50.toInt())
+                        // Verde do tema (antes era fixo e ficava fora da paleta escolhida).
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Gastos: ${money(mb.expenses)}",
@@ -835,7 +869,11 @@ fun MonthlyBalanceItem(mb: MonthlyBalance) {
                 text = "Saldo: ${money(mb.balance)}",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
+                color = if (mb.balance >= 0) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
             )
         }
     }

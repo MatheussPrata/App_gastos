@@ -149,10 +149,7 @@ class TransactionViewModel @Inject constructor(private val repo: TransactionRepo
         _cardFilter.value = cardId
     }
 
-    /**
-     * Gastos POR CATEGORIA de um cartao especifico (filtro do relatorio "Por cartao").
-     * Reemite quando o mes ou o cartao selecionado muda.
-     */
+    /** Gasto por categoria de um cartao especifico (filtro do relatorio). */
     val expensesByCategoryForCard: LiveData<List<TransactionDao.CategoryExpense>> =
         combine(
             _selectedMonth.asFlow(),
@@ -233,6 +230,12 @@ class TransactionViewModel @Inject constructor(private val repo: TransactionRepo
 @HiltViewModel
 class BudgetLimitViewModel @Inject constructor(private val repo: BudgetLimitRepository) : ViewModel() {
     val activeLimits = repo.getActiveWithCategories().asLiveData(viewModelScope.coroutineContext)
+
+    /**
+     * Alertas de limites mensais JA estourados no mes seguinte (parcelas agendadas).
+     * Mostrados como aviso na tela inicial.
+     */
+    val nextMonthAlerts = repo.nextMonthOverLimit().asLiveData(viewModelScope.coroutineContext)
 
     suspend fun insert(limit: BudgetLimit) = repo.insert(limit)
     suspend fun update(limit: BudgetLimit) = repo.update(limit)
