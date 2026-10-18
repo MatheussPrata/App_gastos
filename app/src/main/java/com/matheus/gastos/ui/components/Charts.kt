@@ -50,6 +50,44 @@ data class ChartEntry(
     val color: Color
 )
 
+/**
+ * Paleta usada quando as entradas nao tem cores distintas entre si.
+ * Antes o grafico inteiro saia de uma cor so (todas as categorias herdavam o mesmo
+ * default do banco), o que tornava barras e fatias indistinguiveis.
+ */
+val CHART_PALETTE = listOf(
+    Color(0xFF6750A4), Color(0xFF1E88E5), Color(0xFF43A047), Color(0xFFFB8C00),
+    Color(0xFFE53935), Color(0xFF8E24AA), Color(0xFF00897B), Color(0xFFD81B60),
+    Color(0xFF3949AB), Color(0xFF00ACC1), Color(0xFF7CB342), Color(0xFFFDD835),
+    Color(0xFF6D4C41), Color(0xFF546E7A), Color(0xFFFF7043), Color(0xFF5E35B1)
+)
+
+/**
+ * Garante cores distinguiveis para o grafico.
+ *
+ * Se as entradas vieram todas com a mesma cor (caso comum: categorias padrao criadas
+ * sem cor propria), aplica [CHART_PALETTE] na ordem. Se ja existem cores diferentes,
+ * mantem as escolhidas pelo usuario e so preenche repetidas com a paleta.
+ */
+fun withDistinctColors(entries: List<ChartEntry>): List<ChartEntry> {
+    if (entries.isEmpty()) return entries
+    val distinct = entries.map { it.color }.distinct()
+    if (distinct.size == entries.size) return entries
+    val allSame = distinct.size == 1
+    return entries.mapIndexed { index, entry ->
+        when {
+            allSame -> entry.copy(color = CHART_PALETTE[index % CHART_PALETTE.size])
+            // Cor repetida: procura a primeira cor da paleta ainda nao usada.
+            entries.take(index).any { old -> old.color == entry.color } -> {
+                val used = entries.take(index).map { it.color }.toSet()
+                val free = CHART_PALETTE.firstOrNull { it !in used }
+                if (free != null) entry.copy(color = free) else entry
+            }
+            else -> entry
+        }
+    }
+}
+
 private fun formatCurrency(value: Double): String =
     NumberFormat.getCurrencyInstance(Locale("pt", "BR")).format(value)
 

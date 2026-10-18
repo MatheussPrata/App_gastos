@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.PaymentMethod
 import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.ui.components.SelectorField
@@ -287,6 +288,14 @@ fun AddExpenseScreen(
                         }
                         else -> {
                             errorMessage = null
+                            // Sem categoria escolhida, usa "Outros" (gasto) ou "Salário" (entrada)
+                            // para o lançamento nunca ficar sem categoria e sumir de
+                            // relatórios/limites.
+                            val resolvedCategoryId = selectedCategoryId
+                                ?: fallbackCategoryId(
+                                    isExpense = isExpense,
+                                    categories = categories
+                                )
                             scope.launch {
                                 saveTransaction(
                                     editing = editing,
@@ -295,7 +304,7 @@ fun AddExpenseScreen(
                                     amount = parsedAmount,
                                     date = date,
                                     isExpense = isExpense,
-                                    categoryId = selectedCategoryId,
+                                    categoryId = resolvedCategoryId,
                                     cardId = if (isExpense && paymentMethod == PaymentMethod.CARTAO) selectedCardId else null,
                                     paymentMethod = paymentMethod,
                                     isInstallment = isExpense && isInstallment,
@@ -404,6 +413,13 @@ private fun PaymentMethodDialog(
         }
     )
 }
+
+/**
+ * Primeira categoria de "Outros" do tipo informado, ou null se nao existir.
+ * Usada quando o usuario nao escolhe categoria no lancamento.
+ */
+internal fun fallbackCategoryId(isExpense: Boolean, categories: List<Category>): Long? =
+    categories.firstOrNull { it.isExpenseDefault == isExpense && it.name == "Outros" }?.id
 
 private suspend fun saveTransaction(
     editing: Boolean,

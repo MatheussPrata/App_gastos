@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +79,14 @@ fun SettingsScreen(
     // Antes do primeiro load, usa os valores do LiveData.
     val currentThemeMode = if (AppearanceState.isLoaded) AppearanceState.themeMode else themeMode.value
     val currentAccentColor = if (AppearanceState.isLoaded) AppearanceState.accentColor else accentColor.value
+
+    // Acompanha a troca de tema/cor feita nesta tela (via AppearanceState) e tambem a
+    // alteracao vinda de outro lugar (via LiveData), mantendo o picker sincronizado.
+    LaunchedEffect(themeMode.value, accentColor.value) {
+        if (!AppearanceState.isLoaded) {
+            AppearanceState.apply(themeMode.value, accentColor.value)
+        }
+    }
 
     var showColorPicker by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -353,10 +362,14 @@ fun ColorPickerDialog(
 ) {
     val colors = remember {
         listOf(
+            // Paleta expandida (24 cores): tons classicos + variacoes vivas e pastel.
             0xFF6750A4.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(), 0xFFFF9800.toInt(),
             0xFFF44336.toInt(), 0xFF9C27B0.toInt(), 0xFF009688.toInt(), 0xFFE91E63.toInt(),
             0xFF3F51B5.toInt(), 0xFF00BCD4.toInt(), 0xFF8BC34A.toInt(), 0xFFFFC107.toInt(),
-            0xFF795548.toInt(), 0xFF607D8B.toInt(), 0xFFFF5722.toInt(), 0xFF673AB7.toInt()
+            0xFF795548.toInt(), 0xFF607D8B.toInt(), 0xFFFF5722.toInt(), 0xFF673AB7.toInt(),
+            // Novos tons
+            0xFF1E88E5.toInt(), 0xFF43A047.toInt(), 0xFFF4511E.toInt(), 0xFFD81B60.toInt(),
+            0xFF00838F.toInt(), 0xFF5E35B1.toInt(), 0xFFC0CA33.toInt(), 0xFF546E7A.toInt()
         )
     }
 

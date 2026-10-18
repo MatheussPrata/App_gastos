@@ -56,6 +56,7 @@ import com.matheus.gastos.ui.components.HorizontalBarChart
 import com.matheus.gastos.ui.components.PieChart
 import com.matheus.gastos.ui.components.VerticalMonthlyBars
 import com.matheus.gastos.ui.components.percentLabel
+import com.matheus.gastos.ui.components.withDistinctColors
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
@@ -209,14 +210,14 @@ private fun CategoryTabContent(
     selectedIndex: Int?,
     onSelect: (Int?) -> Unit
 ) {
-    val entries = items.map { item ->
+    val entries = withDistinctColors(items.map { item ->
         val cat = categoryMap[item.categoryId]
         ChartEntry(
             label = cat?.name ?: "Categoria ${item.categoryId}",
             value = item.total,
             color = Color((cat?.color ?: 0xFF6750A4).toInt())
         )
-    }
+    })
     when (view) {
         1 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect)
         2 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect, forcePie = true)
@@ -245,14 +246,14 @@ private fun CardTabContent(
     selectedIndex: Int?,
     onSelect: (Int?) -> Unit
 ) {
-    val entries = items.map { item ->
+    val entries = withDistinctColors(items.map { item ->
         val card = cardMap[item.creditCardId]
         ChartEntry(
             label = card?.name ?: "Cartão ${item.creditCardId}",
             value = item.total,
             color = Color((card?.color ?: 0xFF2196F3).toInt())
         )
-    }
+    })
     when (view) {
         1 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect)
         2 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect, forcePie = true)
