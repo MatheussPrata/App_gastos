@@ -41,10 +41,10 @@ jobs:
         GASTOS_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         GASTOS_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         GASTOS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g"
+      run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m"
 
     - name: Run unit tests
-      run: ./gradlew testDebugUnitTest --no-daemon -Dorg.gradle.jvmargs="-Xmx3g"
+      run: ./gradlew testDebugUnitTest --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m"
 
     - name: Upload test reports
       if: always()
@@ -59,7 +59,7 @@ jobs:
       if: failure()
       run: |
         echo "===== ERROS DE COMPILACAO ====="
-        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3g" 2>&1 \
+        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m" 2>&1 \
           | grep -E "^e: |error:|Unresolved|Cannot|none of the following" | head -100 || true
 
     - name: Upload Debug APK
