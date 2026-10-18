@@ -272,6 +272,12 @@ class TransactionRepository(private val dao: TransactionDao) {
                 totalInstallments = totalInstallments,
                 installmentGroupId = groupId,
                 isInstallment = totalInstallments > 1,
+                // O cartao vem por parametro e precisa ser gravado em CADA parcela.
+                // Sem isso as parcelas ficavam sem cartao e sumiam do relatorio
+                // "Por cartao" nos meses seguintes ao da compra.
+                creditCardId = creditCardId ?: baseTransaction.creditCardId,
+                categoryId = categoryId ?: baseTransaction.categoryId,
+                subcategoryId = subcategoryId ?: baseTransaction.subcategoryId,
                 date = cal.timeInMillis,
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis()
