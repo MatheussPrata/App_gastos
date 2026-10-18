@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -274,6 +276,54 @@ private fun CardTabContent(
 }
 
 @Composable
+private fun DeficitNotice(
+    totalExpenses: Double,
+    totalIncome: Double,
+    balance: Double
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "Sem receitas neste mês",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = "A pizza compara receitas e gastos. Como não houve entrada, " +
+                    "ela não teria fatias para mostrar.",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Gastos: ${money(totalExpenses)}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = "Saldo: ${money(balance)}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
 private fun SummaryTabContent(
     view: Int,
     totalExpenses: Double,
@@ -293,9 +343,19 @@ private fun SummaryTabContent(
             val entries = listOf(
                 ChartEntry("Receitas", totalIncome, incomeColor),
                 ChartEntry("Gastos", totalExpenses, expenseColor)
-            )
+            ).filter { it.value > 0.0 }
             if (view == 2) {
-                PieChart(entries = entries)
+                // Com saldo negativo (gastou mais do que recebeu) a pizza fica sem
+                // leitura útil: mostra o déficit de forma explícita em vez do gráfico.
+                if (totalIncome <= 0.0) {
+                    DeficitNotice(
+                        totalExpenses = totalExpenses,
+                        totalIncome = totalIncome,
+                        balance = balance
+                    )
+                } else {
+                    PieChart(entries = entries)
+                }
             } else {
                 HorizontalBarChart(entries = entries)
             }

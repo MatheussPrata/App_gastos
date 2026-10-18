@@ -110,6 +110,12 @@ interface CreditCardDao {
     @Query("SELECT * FROM credit_cards ORDER BY sortOrder, name")
     fun getAll(): Flow<List<CreditCard>>
 
+    @Query("SELECT * FROM credit_cards ORDER BY sortOrder, name")
+    suspend fun getAllOnce(): List<CreditCard>
+
+    @Query("SELECT COUNT(*) FROM credit_cards")
+    suspend fun count(): Int
+
     @Query("SELECT * FROM credit_cards WHERE id = :id")
     suspend fun getById(id: Long): CreditCard?
 }

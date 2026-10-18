@@ -19,12 +19,18 @@ class BudgetAlertWorker(
 
     override suspend fun doWork(): Result = try {
         val db = AppDatabase.getInstance(applicationContext)
-        val repo = com.matheus.gastos.data.repository.BudgetLimitRepository(db.budgetLimitDao())
+        val repo = com.matheus.gastos.data.repository.BudgetLimitRepository(
+            db.budgetLimitDao(),
+            db.categoryDao(),
+            db.transactionDao()
+        )
         
-        val activeLimits = repo.getActive().first()
+        val activeLimits = repo.getActiveWithCategories().first()
         
-        for (limit in activeLimits) {
-            if (limit.spentAmount >= limit.limitAmount * 0.9) {
+        for (entry in activeLimits) {
+            val limit = entry.budgetLimit
+            val spent = entry.spentAmount
+            if (limit.limitAmount > 0.0 && spent >= limit.limitAmount * 0.9) {
                 showNotification(limit)
             }
         }

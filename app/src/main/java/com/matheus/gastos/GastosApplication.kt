@@ -2,6 +2,7 @@ package com.matheus.gastos
 
 import android.app.Application
 import com.matheus.gastos.data.repository.CategoryRepository
+import com.matheus.gastos.data.repository.CreditCardRepository
 import com.matheus.gastos.data.repository.TransactionRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +20,9 @@ class GastosApplication : Application() {
     @Inject
     lateinit var transactionRepository: TransactionRepository
 
+    @Inject
+    lateinit var creditCardRepository: CreditCardRepository
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -30,6 +34,7 @@ class GastosApplication : Application() {
                 categoryRepository.seedDefaultsIfEmpty()
                 val categories = categoryRepository.getAllOnce()
                 transactionRepository.seedDemoIfEmpty(categories)
+                creditCardRepository.seedDemoCardsIfEmpty()
             }
         }
     }

@@ -70,7 +70,11 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideBudgetLimitRepository(dao: BudgetLimitDao) = com.matheus.gastos.data.repository.BudgetLimitRepository(dao)
+    fun provideBudgetLimitRepository(
+        dao: BudgetLimitDao,
+        categoryDao: CategoryDao,
+        transactionDao: TransactionDao
+    ) = com.matheus.gastos.data.repository.BudgetLimitRepository(dao, categoryDao, transactionDao)
 
     @Provides
     @Singleton

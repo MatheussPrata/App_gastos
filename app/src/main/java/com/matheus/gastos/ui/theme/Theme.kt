@@ -8,9 +8,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -83,6 +85,45 @@ private val LightColorScheme = lightColorScheme(
     inversePrimary = Color(0xFF6750A4)
 )
 
+/**
+ * Mistura [color] com [other] na proporção [fraction] (0f..1f).
+ * Usado para derivar tons claros/escuros da cor de destaque sem depender do dynamic color.
+ */
+internal fun Color.lerpTo(other: Color, fraction: Float): Color {
+    val f = fraction.coerceIn(0f, 1f)
+    return Color(
+        red = red + (other.red - red) * f,
+        green = green + (other.green - green) * f,
+        blue = blue + (other.blue - blue) * f,
+        alpha = alpha + (other.alpha - alpha) * f
+    )
+}
+
+/**
+ * Deriva os tons de container a partir da cor de destaque.
+ *
+ * Antes só `primary` era trocado, então botões e o card de saldo (que usam
+ * `primaryContainer`) continuavam roxos. Aqui a família inteira acompanha a cor escolhida.
+ */
+@Composable
+private fun ColorScheme.withAccent(accent: Color, dark: Boolean): ColorScheme {
+    return if (dark) {
+        copy(
+            primary = accent,
+            onPrimary = if (accent.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White,
+            primaryContainer = accent.lerpTo(Color.Black, 0.55f),
+            onPrimaryContainer = accent.lerpTo(Color.White, 0.82f)
+        )
+    } else {
+        copy(
+            primary = accent,
+            onPrimary = if (accent.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White,
+            primaryContainer = accent.lerpTo(Color.White, 0.80f),
+            onPrimaryContainer = accent.lerpTo(Color.Black, 0.55f)
+        )
+    }
+}
+
 @Composable
 fun GastosTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -90,13 +131,15 @@ fun GastosTheme(
     accentColor: Int = 0xFF6750A4.toInt(),
     content: @Composable () -> Unit
 ) {
+    val accent = Color(accentColor)
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= 31 -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            val base = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            base.withAccent(accent, darkTheme)
         }
-        darkTheme -> DarkColorScheme.copy(primary = Color(accentColor))
-        else -> LightColorScheme.copy(primary = Color(accentColor))
+        darkTheme -> DarkColorScheme.withAccent(accent, true)
+        else -> LightColorScheme.withAccent(accent, false)
     }
 
     val view = LocalView.current

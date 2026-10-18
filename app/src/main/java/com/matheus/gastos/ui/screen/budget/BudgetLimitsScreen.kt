@@ -181,12 +181,13 @@ fun BudgetLimitsScreen(
                 items(limits, key = { it.budgetLimit.id }) { item ->
                     val limit = item.budgetLimit
                     BudgetLimitCard(
-                        title = categoryName(limit.categoryId),
-                        color = categoryColor(limit.categoryId),
+                        title = item.categoryName ?: categoryName(limit.categoryId),
+                        color = Color(item.categoryColor),
                         limitLabel = money.format(limit.limitAmount),
                         periodLabel = budgetPeriodLabel(limit.period),
                         limitValue = limit.limitAmount,
-                        spent = limit.spentAmount,
+                        // Gasto real da categoria no período (antes vinha sempre 0).
+                        spent = item.spentAmount,
                         onEdit = {
                             editingLimit = limit
                             showEditor = true

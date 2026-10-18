@@ -1,6 +1,8 @@
 package com.matheus.gastos
 
 import com.matheus.gastos.data.dao.BudgetLimitDao
+import com.matheus.gastos.data.dao.CategoryDao
+import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.BudgetPeriod
 import com.matheus.gastos.data.repository.BudgetLimitRepository
@@ -28,11 +30,17 @@ class BudgetLimitTest {
     @Mock
     lateinit var dao: BudgetLimitDao
 
+    @Mock
+    lateinit var categoryDao: CategoryDao
+
+    @Mock
+    lateinit var transactionDao: TransactionDao
+
     private lateinit var repository: BudgetLimitRepository
 
     @Before
     fun setup() {
-        repository = BudgetLimitRepository(dao)
+        repository = BudgetLimitRepository(dao, categoryDao, transactionDao)
     }
 
     // --- Entidade / defaults ---
@@ -139,6 +147,9 @@ class BudgetLimitTest {
     fun `getActiveWithCategories keeps active limits`() = runBlocking {
         val limits = listOf(BudgetLimit(id = 1L, categoryId = 1L, limitAmount = 100.0))
         whenever(dao.getActive()).thenReturn(flowOf(limits))
+        whenever(categoryDao.getAllOnce()).thenReturn(emptyList())
+        whenever(transactionDao.getExpensesByCategory(org.mockito.kotlin.any(), org.mockito.kotlin.any()))
+            .thenReturn(flowOf(emptyList()))
 
         val result = repository.getActiveWithCategories().first()
 

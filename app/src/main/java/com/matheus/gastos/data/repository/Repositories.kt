@@ -16,9 +16,47 @@ import com.matheus.gastos.data.entity.AppSettings
 import com.matheus.gastos.data.entity.BudgetPeriod
 import com.matheus.gastos.data.entity.PaymentMethod
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import java.util.Calendar
 import java.util.Date
 import java.util.UUID
+
+/**
+ * Início do período corrente (dia/semana/mês/ano) em epoch millis, à meia-noite.
+ * Usado para saber quanto já foi gasto dentro do ciclo do limite.
+ */
+internal fun budgetPeriodStartMillis(period: BudgetPeriod, now: Long = System.currentTimeMillis()): Long {
+    val cal = Calendar.getInstance().apply {
+        timeInMillis = now
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+        when (period) {
+            BudgetPeriod.DAILY -> Unit
+            BudgetPeriod.WEEKLY -> set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            BudgetPeriod.MONTHLY -> set(Calendar.DAY_OF_MONTH, 1)
+            BudgetPeriod.YEARLY -> set(Calendar.DAY_OF_YEAR, 1)
+        }
+    }
+    return cal.timeInMillis
+}
+
+/** Fim (inclusive) do período corrente em epoch millis. */
+internal fun budgetPeriodEndMillis(period: BudgetPeriod, now: Long = System.currentTimeMillis()): Long {
+    val cal = Calendar.getInstance().apply {
+        timeInMillis = budgetPeriodStartMillis(period, now)
+        when (period) {
+            BudgetPeriod.DAILY -> add(Calendar.DAY_OF_MONTH, 1)
+            BudgetPeriod.WEEKLY -> add(Calendar.WEEK_OF_YEAR, 1)
+            BudgetPeriod.MONTHLY -> add(Calendar.MONTH, 1)
+            BudgetPeriod.YEARLY -> add(Calendar.YEAR, 1)
+        }
+        add(Calendar.MILLISECOND, -1)
+    }
+    return cal.timeInMillis
+}
 
 class CategoryRepository(private val dao: CategoryDao) {
     suspend fun insert(category: Category) = dao.insert(category)
@@ -117,6 +155,39 @@ class CreditCardRepository(private val dao: CreditCardDao) {
     fun getActive(): Flow<List<CreditCard>> = dao.getActive()
     fun getAll(): Flow<List<CreditCard>> = dao.getAll()
     suspend fun getById(id: Long) = dao.getById(id)
+    /**
+     * Cria dois cartões de exemplo quando ainda não existe nenhum, para testar
+     * a tela de cartões e o relatório "Por cartão" sem cadastro manual.
+     * Idempotente: se já houver qualquer cartão, não faz nada.
+     */
+    suspend fun seedDemoCardsIfEmpty() {
+        if (dao.getAllOnce().isNotEmpty()) return
+
+        dao.insertAll(
+            listOf(
+                CreditCard(
+                    name = "Cartão Principal",
+                    lastFourDigits = "1234",
+                    brand = "VISA",
+                    color = 0xFF1E88E5.toInt(),
+                    limitAmount = 3000.0,
+                    closingDay = 5,
+                    dueDay = 15,
+                    sortOrder = 0
+                ),
+                CreditCard(
+                    name = "Cartão Secundário",
+                    lastFourDigits = "5678",
+                    brand = "MASTERCARD",
+                    color = 0xFF43A047.toInt(),
+                    limitAmount = 1500.0,
+                    closingDay = 20,
+                    dueDay = 28,
+                    sortOrder = 1
+                )
+            )
+        )
+    }
 }
 
 class TransactionRepository(private val dao: TransactionDao) {
@@ -294,7 +365,11 @@ class TransactionRepository(private val dao: TransactionDao) {
     }
 }
 
-class BudgetLimitRepository(private val dao: BudgetLimitDao) {
+class BudgetLimitRepository(
+    private val dao: BudgetLimitDao,
+    private val categoryDao: CategoryDao,
+    private val transactionDao: TransactionDao
+) {
     suspend fun insert(limit: BudgetLimit) = dao.insert(limit)
     suspend fun update(limit: BudgetLimit) = dao.update(limit)
     suspend fun delete(limit: BudgetLimit) = dao.delete(limit)
@@ -306,15 +381,58 @@ class BudgetLimitRepository(private val dao: BudgetLimitDao) {
     data class BudgetLimitWithCategory(
         val budgetLimit: BudgetLimit,
         val categoryName: String?,
-        val categoryColor: Int
+        val categoryColor: Int,
+        /** Gasto real da categoria dentro do período do limite. */
+        val spentAmount: Double
     )
 
+    /**
+     * Limites ativos com o nome/cor da categoria e o gasto REAL do período.
+     *
+     * Antes o mapeamento devolvia `null`/`0` sempre e ninguém calculava o gasto,
+     * por isso o limite nunca contava transação nenhuma (nem nova nem antiga).
+     */
     fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategory>> {
         return dao.getActive().map { limits ->
+            if (limits.isEmpty()) return@map emptyList()
+
+            val categories = categoryDao.getAllOnce().associateBy { it.id }
+            val now = System.currentTimeMillis()
+
             limits.map { limit ->
-                BudgetLimitWithCategory(limit, null, 0)
+                val category = categories[limit.categoryId]
+                val start = budgetPeriodStartMillis(limit.period, now)
+                val end = budgetPeriodEndMillis(limit.period, now)
+                val spent = transactionDao
+                    .getExpensesByCategory(start, end)
+                    .firstOrNull()
+                    ?.firstOrNull { it.categoryId == limit.categoryId }
+                    ?.total
+                    ?: 0.0
+
+                BudgetLimitWithCategory(
+                    budgetLimit = limit,
+                    categoryName = category?.name,
+                    categoryColor = category?.color ?: 0xFF6750A4.toInt(),
+                    spentAmount = spent
+                )
             }
         }
+    }
+
+    /**
+     * Gasto real de cada limite, consultado sob demanda pela tela.
+     * Separado do fluxo de limites para não recalcular tudo a cada emissão.
+     */
+    suspend fun spentFor(limit: BudgetLimit, now: Long = System.currentTimeMillis()): Double {
+        val start = budgetPeriodStartMillis(limit.period, now)
+        val end = budgetPeriodEndMillis(limit.period, now)
+        return transactionDao
+            .getExpensesByCategory(start, end)
+            .firstOrNull()
+            ?.firstOrNull { it.categoryId == limit.categoryId }
+            ?.total
+            ?: 0.0
     }
 }
 
