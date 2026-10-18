@@ -17,6 +17,9 @@ import com.matheus.gastos.data.repository.SettingsRepository
 import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.ui.theme.AppearanceState
+import com.matheus.gastos.util.addMonths
+import com.matheus.gastos.util.isCurrentMonth
+import com.matheus.gastos.util.monthStart
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -59,7 +62,29 @@ class TransactionViewModel @Inject constructor(private val repo: TransactionRepo
     val selectedMonth: LiveData<Long> = _selectedMonth
 
     fun setSelectedMonth(timestamp: Long) {
-        _selectedMonth.value = timestamp
+        val month = monthStart(timestamp)
+        if (_selectedMonth.value != month) {
+            _selectedMonth.value = month
+        }
+    }
+
+    /** Move a seleção [delta] meses (negativo = passado) a partir do mês selecionado. */
+    fun shiftSelectedMonth(delta: Int) {
+        val base = _selectedMonth.value ?: System.currentTimeMillis()
+        setSelectedMonth(addMonths(base, delta))
+    }
+
+    /**
+     * Se o mês selecionado deixou de ser o mês corrente (ex.: virou o dia 1),
+     * seleciona o novo mês atual. Retorna true quando houve mudança.
+     */
+    fun refreshToCurrentMonthIfNeeded(): Boolean {
+        val selected = _selectedMonth.value ?: return false
+        if (!isCurrentMonth(selected)) {
+            setSelectedMonth(System.currentTimeMillis())
+            return true
+        }
+        return false
     }
 
     val currentMonthTransactions: LiveData<List<Transaction>> = _selectedMonth

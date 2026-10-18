@@ -1,6 +1,9 @@
 package com.matheus.gastos.ui.screen.expenses
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +20,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -35,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -54,13 +60,20 @@ import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
+import com.matheus.gastos.util.addMonths
+import com.matheus.gastos.util.isCurrentMonth
+import com.matheus.gastos.util.millisUntilNextMidnight
+import com.matheus.gastos.util.monthStart
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExpensesScreen(
     viewModel: TransactionViewModel,
@@ -69,6 +82,53 @@ fun ExpensesScreen(
     onAddExpense: () -> Unit,
     onEditExpense: (Long) -> Unit
 ) {
+    val selectedMonthState = viewModel.selectedMonth.observeAsState(initial = monthStart(System.currentTimeMillis()))
+    val selectedMonth: Long = selectedMonthState.value
+
+    // Janela fixa de meses: índice 0 = 24 meses atrás, índice 24 = mês atual, índice 48 = +24 meses.
+    val centerPage = 24
+    val currentMonthPageBase = remember { monthStart(System.currentTimeMillis()) }
+
+    fun pageMonth(page: Int): Long = addMonths(currentMonthPageBase, page - centerPage)
+
+    fun pageForMonth(millis: Long): Int {
+        val calNow = java.util.Calendar.getInstance().apply { timeInMillis = monthStart(currentMonthPageBase) }
+        val calOther = java.util.Calendar.getInstance().apply { timeInMillis = monthStart(millis) }
+        val delta = (calOther.get(java.util.Calendar.YEAR) - calNow.get(java.util.Calendar.YEAR)) * 12 +
+            (calOther.get(java.util.Calendar.MONTH) - calNow.get(java.util.Calendar.MONTH))
+        return (centerPage + delta).coerceIn(0, centerPage * 2)
+    }
+
+    val pagerState = rememberPagerState(initialPage = pageForMonth(selectedMonth)) { centerPage * 2 + 1 }
+    val scope = rememberCoroutineScope()
+
+    // Ao virar a página, seleciona o mês correspondente no ViewModel.
+    LaunchedEffect(pagerState.currentPage) {
+        val month = pageMonth(pagerState.currentPage)
+        if (!isSameMonth(month, selectedMonth)) {
+            viewModel.setSelectedMonth(month)
+        }
+    }
+
+    // Se o mês selecionado mudar por fora (setas, date picker, virada de mês), alinha o pager.
+    LaunchedEffect(selectedMonth) {
+        val target = pageForMonth(selectedMonth)
+        if (target != pagerState.currentPage) {
+            pagerState.scrollToPage(target)
+        }
+    }
+
+    // Virada automática do mês: ao voltar para o app e à meia-noite local.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshToCurrentMonthIfNeeded()
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(millisUntilNextMidnight())
+            viewModel.refreshToCurrentMonthIfNeeded()
+        }
+    }
+
     val transactionsState = viewModel.currentMonthTransactionsWithBalance.observeAsState(initial = emptyList())
     val categoriesState = categoryViewModel.categories.observeAsState(initial = emptyList())
     val cardsState = creditCardViewModel.allCards.observeAsState(initial = emptyList())
@@ -83,13 +143,32 @@ fun ExpensesScreen(
     val cardMap = cards.associateBy { it.id }
 
     var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Gastos", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Gastos", fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.size(12.dp))
+                        IconButton(onClick = {
+                            scope.launch { pagerState.animateScrollToPage((pagerState.currentPage - 1).coerceAtLeast(0)) }
+                        }, enabled = pagerState.currentPage > 0) {
+                            Icon(Icons.Filled.ChevronLeft, contentDescription = "Mes anterior")
+                        }
+                        Text(
+                            text = formatMonthLabel(selectedMonth),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        IconButton(onClick = {
+                            scope.launch { pagerState.animateScrollToPage((pagerState.currentPage + 1).coerceAtMost(centerPage * 2)) }
+                        }, enabled = pagerState.currentPage < centerPage * 2) {
+                            Icon(Icons.Filled.ChevronRight, contentDescription = "Proximo mes")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
@@ -106,38 +185,47 @@ fun ExpensesScreen(
             }
         }
     ) { innerPadding ->
-        Column(
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            BalanceCard(currentBalance = currentBalance)
+                .padding(innerPadding),
+            key = { page -> page }
+        ) { page ->
+            if (page == pagerState.currentPage) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    BalanceCard(currentBalance = currentBalance)
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            if (transactionsWithBalance.isEmpty()) {
-                EmptyExpensesState()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(transactionsWithBalance) { pair ->
-                        val transaction = pair.first
-                        val runningBalance = pair.second
-                        val category = transaction.categoryId?.let { categoryMap[it] }
-                        val card = transaction.creditCardId?.let { cardMap[it] }
-                        TransactionItem(
-                            transaction = transaction,
-                            runningBalance = runningBalance,
-                            category = category,
-                            card = card,
-                            onEdit = { onEditExpense(transaction.id) },
-                            onDelete = { pendingDeleteId = transaction.id }
-                        )
+                    if (transactionsWithBalance.isEmpty()) {
+                        EmptyExpensesState()
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(transactionsWithBalance) { pair ->
+                                val transaction = pair.first
+                                val runningBalance = pair.second
+                                val category = transaction.categoryId?.let { categoryMap[it] }
+                                val card = transaction.creditCardId?.let { cardMap[it] }
+                                TransactionItem(
+                                    transaction = transaction,
+                                    runningBalance = runningBalance,
+                                    category = category,
+                                    card = card,
+                                    onEdit = { onEditExpense(transaction.id) },
+                                    onDelete = { pendingDeleteId = transaction.id }
+                                )
+                            }
+                        }
                     }
                 }
+            } else {
+                // Páginas vizinhas não exibem dados: o ViewModel tem um único mês selecionado.
+                Box(modifier = Modifier.fillMaxSize())
             }
         }
     }
@@ -367,4 +455,16 @@ private fun EmptyExpensesState() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+private fun formatMonthLabel(millis: Long): String {
+    val month = SimpleDateFormat("MMMM yyyy", Locale("pt", "BR")).format(Date(millis))
+    return month.replaceFirstChar { it.titlecase(Locale("pt", "BR")) }
+}
+
+private fun isSameMonth(a: Long, b: Long): Boolean {
+    val ca = java.util.Calendar.getInstance().apply { timeInMillis = a }
+    val cb = java.util.Calendar.getInstance().apply { timeInMillis = b }
+    return ca.get(java.util.Calendar.YEAR) == cb.get(java.util.Calendar.YEAR) &&
+        ca.get(java.util.Calendar.MONTH) == cb.get(java.util.Calendar.MONTH)
 }

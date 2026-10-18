@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
@@ -26,6 +28,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,6 +53,10 @@ import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
+import com.matheus.gastos.ui.components.ChartEntry
+import com.matheus.gastos.ui.components.HorizontalBarChart
+import com.matheus.gastos.ui.components.PieChart
+import com.matheus.gastos.ui.components.VerticalMonthlyBars
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -66,6 +75,8 @@ fun ReportsScreen(
     val monthlyBalances = transactionViewModel.monthlyBalances.observeAsState(initial = emptyList())
 
     var selectedTab by remember { mutableIntStateOf(0) }
+    var viewMode by remember { mutableIntStateOf(0) }
+    var chartType by remember { mutableIntStateOf(0) }
     val categories = categoryViewModel.categories.observeAsState(initial = emptyList())
     val cards = creditCardViewModel.allCards.observeAsState(initial = emptyList())
 
@@ -89,10 +100,26 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                listOf("Lista", "Gráficos").forEachIndexed { index, label ->
+                    SegmentedButton(
+                        selected = viewMode == index,
+                        onClick = { viewMode = index },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = 2)
+                    ) {
+                        Text(text = label, fontSize = 13.sp)
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TabButton(text = "Por categoria", selected = selectedTab == 0, onClick = { selectedTab = 0 }, modifier = Modifier.weight(1f))
@@ -101,61 +128,161 @@ fun ReportsScreen(
                 TabButton(text = "Histórico", selected = selectedTab == 3, onClick = { selectedTab = 3 }, modifier = Modifier.weight(1f))
             }
 
+            if (viewMode == 1 && (selectedTab == 0 || selectedTab == 1)) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    listOf("Barras", "Pizza").forEachIndexed { index, label ->
+                        SegmentedButton(
+                            selected = chartType == index,
+                            onClick = { chartType = index },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = 2)
+                        ) {
+                            Text(text = label, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                when (selectedTab) {
-                    0 -> {
-                        items(expensesByCategory.value) { item: TransactionDao.CategoryExpense ->
-                            CategoryExpenseItem(
-                                item = item,
-                                category = categoryMap[item.categoryId],
-                                totalExpenses = totalExpenses.value
-                            )
+            val categoryEntries = expensesByCategory.value
+                .map { item ->
+                    ChartEntry(
+                        label = categoryMap[item.categoryId]?.name ?: "Categoria ${item.categoryId}",
+                        value = item.total,
+                        color = Color((categoryMap[item.categoryId]?.color ?: 0xFF6750A4).toInt())
+                    )
+                }
+                .sortedByDescending { it.value }
+            val cardEntries = expensesByCard.value
+                .map { item ->
+                    ChartEntry(
+                        label = cardMap[item.creditCardId]?.name ?: "Cartão ${item.creditCardId}",
+                        value = item.total,
+                        color = Color((cardMap[item.creditCardId]?.color ?: 0xFF2196F3).toInt())
+                    )
+                }
+                .sortedByDescending { it.value }
+
+            if (viewMode == 1) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> {
+                            if (chartType == 0) {
+                                HorizontalBarChart(entries = categoryEntries)
+                            } else {
+                                PieChart(entries = categoryEntries)
+                            }
                         }
-                    }
-                    1 -> {
-                        items(expensesByCard.value) { item: TransactionDao.CardExpense ->
-                            CardExpenseItem(
-                                item = item,
-                                card = cardMap[item.creditCardId],
-                                totalExpenses = totalExpenses.value
-                            )
+                        1 -> {
+                            if (chartType == 0) {
+                                HorizontalBarChart(entries = cardEntries)
+                            } else {
+                                PieChart(entries = cardEntries)
+                            }
                         }
-                    }
-                    2 -> {
-                        item {
-                            SummaryCard(
-                                title = "Total de gastos",
-                                amount = totalExpenses.value,
-                                color = MaterialTheme.colorScheme.error,
-                                icon = Icons.Filled.TrendingDown
+                        2 -> {
+                            val incomeColor = Color(0xFF4CAF50.toInt())
+                            HorizontalBarChart(
+                                entries = listOf(
+                                    ChartEntry(
+                                        label = "Total de gastos",
+                                        value = totalExpenses.value,
+                                        color = MaterialTheme.colorScheme.error
+                                    ),
+                                    ChartEntry(
+                                        label = "Total de receitas",
+                                        value = totalIncome.value,
+                                        color = incomeColor
+                                    )
+                                )
                             )
-                        }
-                        item {
-                            SummaryCard(
-                                title = "Total de receitas",
-                                amount = totalIncome.value,
-                                color = Color(0xFF4CAF50.toInt()),
-                                icon = Icons.Filled.TrendingUp
-                            )
-                        }
-                        item {
                             SummaryCard(
                                 title = "Saldo",
                                 amount = balance.value,
-                                color = if (balance.value >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error,
+                                color = if (balance.value >= 0) incomeColor else MaterialTheme.colorScheme.error,
                                 icon = if (balance.value >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
                             )
                         }
+                        else -> {
+                            VerticalMonthlyBars(
+                                positiveColor = Color(0xFF4CAF50.toInt()),
+                                negativeColor = MaterialTheme.colorScheme.error,
+                                entries = monthlyBalances.value.map { mb ->
+                                    ChartEntry(
+                                        label = mb.month,
+                                        value = mb.balance,
+                                        color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            )
+                        }
                     }
-                    else -> {
-                        items(monthlyBalances.value) { mb ->
-                            MonthlyBalanceItem(mb = mb)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> {
+                            items(expensesByCategory.value) { item: TransactionDao.CategoryExpense ->
+                                CategoryExpenseItem(
+                                    item = item,
+                                    category = categoryMap[item.categoryId],
+                                    totalExpenses = totalExpenses.value
+                                )
+                            }
+                        }
+                        1 -> {
+                            items(expensesByCard.value) { item: TransactionDao.CardExpense ->
+                                CardExpenseItem(
+                                    item = item,
+                                    card = cardMap[item.creditCardId],
+                                    totalExpenses = totalExpenses.value
+                                )
+                            }
+                        }
+                        2 -> {
+                            item {
+                                SummaryCard(
+                                    title = "Total de gastos",
+                                    amount = totalExpenses.value,
+                                    color = MaterialTheme.colorScheme.error,
+                                    icon = Icons.Filled.TrendingDown
+                                )
+                            }
+                            item {
+                                SummaryCard(
+                                    title = "Total de receitas",
+                                    amount = totalIncome.value,
+                                    color = Color(0xFF4CAF50.toInt()),
+                                    icon = Icons.Filled.TrendingUp
+                                )
+                            }
+                            item {
+                                SummaryCard(
+                                    title = "Saldo",
+                                    amount = balance.value,
+                                    color = if (balance.value >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error,
+                                    icon = if (balance.value >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
+                                )
+                            }
+                        }
+                        else -> {
+                            items(monthlyBalances.value) { mb ->
+                                MonthlyBalanceItem(mb = mb)
+                            }
                         }
                     }
                 }
@@ -163,6 +290,7 @@ fun ReportsScreen(
         }
     }
 }
+
 
 @Composable
 fun TabButton(

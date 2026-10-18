@@ -134,8 +134,7 @@ class TransactionRepository(private val dao: TransactionDao) {
     suspend fun getById(id: Long) = dao.getById(id)
 
     companion object {
-        fun getMonthBounds(date: Date): Pair<Long, Long> {
-            val cal = java.util.Calendar.getInstance()
+        fun getMonthBounds(date: Date): Pair<Long, Long> {            val cal = java.util.Calendar.getInstance()
             cal.time = date
             cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
             cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -148,6 +147,27 @@ class TransactionRepository(private val dao: TransactionDao) {
             val end = cal.timeInMillis
             return start to end
         }
+
+        /**
+         * Divide [total] em [count] parcelas em centavos, sem perder nem sobrar 1 centavo.
+         *
+         * Ex.: 1000.0 em 10x -> 10 x 100.0
+         *      100.0 em 3x  -> 33.33, 33.33, 33.34 (a ultima absorve a sobra)
+         *
+         * Entradas invalidas (count <= 0) devolvem lista vazia. total <= 0 gera zeros.
+         */
+        fun splitInstallmentAmounts(total: Double, count: Int): List<Double> {
+            if (count <= 0) return emptyList()
+            // Trabalha em centavos inteiros para evitar erro de ponto flutuante.
+            val totalCents = Math.round(total * 100.0)
+            val base = totalCents / count
+            val remainder = totalCents - base * count
+
+            return (1..count).map { index ->
+                val cents = if (index == count) base + remainder else base
+                cents / 100.0
+            }
+        }
     }
 
     suspend fun createInstallments(
@@ -159,14 +179,17 @@ class TransactionRepository(private val dao: TransactionDao) {
     ) {
         val groupId = UUID.randomUUID().toString()
         val installments = mutableListOf<Transaction>()
+        val amounts = splitInstallmentAmounts(baseTransaction.amount, totalInstallments)
 
         for (i in 1..totalInstallments) {
             val cal = java.util.Calendar.getInstance()
             cal.timeInMillis = baseTransaction.date
+            // Avanca mes a mes a partir da data da compra.
             cal.add(java.util.Calendar.MONTH, i - 1)
 
             val installment = baseTransaction.copy(
                 id = 0,
+                amount = amounts[i - 1],
                 installmentNumber = i,
                 totalInstallments = totalInstallments,
                 installmentGroupId = groupId,
