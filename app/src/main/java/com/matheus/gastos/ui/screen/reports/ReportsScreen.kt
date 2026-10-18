@@ -65,6 +65,12 @@ import java.util.Locale
 /** Quantidade de visualizacoes por aba: Lista -> Barras -> Pizza. */
 private const val VIEW_COUNT = 3
 
+/**
+ * Total de paginas do pager infinito.
+ * Alto o suficiente para o usuario nunca ver o limite; o conteudo e ciclico via `page % VIEW_COUNT`.
+ */
+private const val LOOP_PAGES = 3000
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ReportsScreen(
@@ -89,18 +95,24 @@ fun ReportsScreen(
     // Indice da visualizacao (0=Lista, 1=Barras, 2=Pizza) por aba.
     val viewByTab = remember { mutableIntStateOf(0) }
 
-    val pagerState = rememberPagerState(initialPage = 1) { VIEW_COUNT }
+    // Pager INFINITO: muitas paginas, sempre comecando no meio.
+    // O conteudo real e `page % VIEW_COUNT`, entao arrastar nunca chega no fim:
+    // do ultimo (Pizza) volta para o primeiro (Lista) e vice-versa.
+    val loopStart = LOOP_PAGES / 2 - (LOOP_PAGES / 2) % VIEW_COUNT
+    val pagerState = rememberPagerState(initialPage = loopStart) { LOOP_PAGES }
+    var syncingPager by remember { mutableStateOf(false) }
 
-    // Sincroniza o pager com o indice guardado da aba (troca de aba reseta/restaura).
+    // Troca de aba: volta para a primeira visualizacao (Lista).
     LaunchedEffect(selectedTab) {
-        if (pagerState.currentPage != viewByTab.intValue + 1) {
-            pagerState.scrollToPage(viewByTab.intValue + 1)
-        }
+        viewByTab.intValue = 0
+        syncingPager = true
+        pagerState.scrollToPage(loopStart)
+        syncingPager = false
     }
 
     LaunchedEffect(pagerState.currentPage) {
-        val view = ((pagerState.currentPage - 1) % VIEW_COUNT + VIEW_COUNT) % VIEW_COUNT
-        viewByTab.intValue = view
+        if (syncingPager) return@LaunchedEffect
+        viewByTab.intValue = ((pagerState.currentPage % VIEW_COUNT) + VIEW_COUNT) % VIEW_COUNT
     }
 
     var selectedCategoryIndex by remember(selectedTab) { mutableStateOf<Int?>(null) }
@@ -137,7 +149,7 @@ fun ReportsScreen(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            // Swipe circular: paginas infinitas usando modulo VIEW_COUNT.
+            // Swipe infinito: o indice real da visualizacao e `page % VIEW_COUNT`.
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -145,7 +157,7 @@ fun ReportsScreen(
                     .fillMaxWidth(),
                 key = { it }
             ) { page ->
-                val view = ((page - 1) % VIEW_COUNT + VIEW_COUNT) % VIEW_COUNT
+                val view = ((page % VIEW_COUNT) + VIEW_COUNT) % VIEW_COUNT
                 when (selectedTab) {
                     0 -> CategoryTabContent(
                         view = view,
