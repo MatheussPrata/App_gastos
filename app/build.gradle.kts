@@ -13,10 +13,26 @@ android {
         applicationId = "com.matheus.gastos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        // Assinatura FIXA de debug, usada para que o APK do CI possa ser
+        // instalado por cima do anterior (mesma assinatura = atualiza preservando dados).
+        // Em CI, os valores vem de variaveis de ambiente alimentadas por GitHub Secrets.
+        // Localmente, cai no keystore de debug padrao se as variaveis nao existirem.
+        create("fixed") {
+            val storePath = System.getenv("GASTOS_KEYSTORE_PATH")
+            if (storePath != null && file(storePath).exists()) {
+                storeFile = file(storePath)
+                storePassword = System.getenv("GASTOS_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("GASTOS_KEY_ALIAS") ?: "gastos"
+                keyPassword = System.getenv("GASTOS_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -26,9 +42,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (System.getenv("GASTOS_KEYSTORE_PATH") != null) {
+                signingConfig = signingConfigs.getByName("fixed")
+            }
         }
         debug {
             isDebuggable = true
+            if (System.getenv("GASTOS_KEYSTORE_PATH") != null) {
+                signingConfig = signingConfigs.getByName("fixed")
+            }
         }
     }
 

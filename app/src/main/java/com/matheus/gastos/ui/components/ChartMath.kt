@@ -38,6 +38,29 @@ fun sliceSweepAngles(values: List<Float>): List<Float> {
 }
 
 /**
+ * Índice da fatia de pizza que contém [angleDeg], considerando os ângulos acumulados de [sweeps].
+ * O ângulo 0f corresponde ao início da primeira fatia; 360f equivale a 0f.
+ * Fatias com sweep 0 são ignoradas. Retorna -1 se a lista estiver vazia, sem ângulos positivos
+ * ou se o ângulo for inválido (fora de 0f..360f ou NaN).
+ */
+fun sliceIndexAtAngle(sweeps: List<Float>, angleDeg: Float): Int {
+    if (sweeps.isEmpty() || angleDeg.isNaN() || angleDeg < 0f || angleDeg > 360f) return -1
+    val totalPositive = sweeps.filter { it > 0f }.sum()
+    if (totalPositive <= 0f) return -1
+    val normalized = if (angleDeg == 360f) 0f else angleDeg
+    var accumulated = 0f
+    for (index in sweeps.indices) {
+        val sweep = sweeps[index]
+        if (sweep > 0f) {
+            accumulated += sweep
+            if (normalized < accumulated) return index
+        }
+    }
+    // 359,99... com arredondamento acumulado: atribui à última fatia positiva.
+    return sweeps.indexOfLast { it > 0f }
+}
+
+/**
  * Fração 0f..1f de uma barra em relação ao maior valor.
  * Seguro para max <= 0, value <= 0 e NaN; valores acima do max são limitados a 1f.
  */

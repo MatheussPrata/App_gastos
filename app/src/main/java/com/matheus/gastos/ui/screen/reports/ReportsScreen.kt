@@ -1,5 +1,6 @@
 package com.matheus.gastos.ui.screen.reports
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,8 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
@@ -28,18 +29,17 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,19 +48,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
-import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.Category
-import com.matheus.gastos.viewmodel.CategoryViewModel
-import com.matheus.gastos.viewmodel.CreditCardViewModel
-import com.matheus.gastos.viewmodel.TransactionViewModel
+import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.ui.components.ChartEntry
+import com.matheus.gastos.ui.components.EmptyChartMessage
 import com.matheus.gastos.ui.components.HorizontalBarChart
 import com.matheus.gastos.ui.components.PieChart
 import com.matheus.gastos.ui.components.VerticalMonthlyBars
+import com.matheus.gastos.ui.components.percentLabel
+import com.matheus.gastos.viewmodel.CategoryViewModel
+import com.matheus.gastos.viewmodel.CreditCardViewModel
+import com.matheus.gastos.viewmodel.TransactionViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Quantidade de visualizacoes por aba: Lista -> Barras -> Pizza. */
+private const val VIEW_COUNT = 3
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ReportsScreen(
     transactionViewModel: TransactionViewModel,
@@ -75,13 +80,31 @@ fun ReportsScreen(
     val monthlyBalances = transactionViewModel.monthlyBalances.observeAsState(initial = emptyList())
 
     var selectedTab by remember { mutableIntStateOf(0) }
-    var viewMode by remember { mutableIntStateOf(0) }
-    var chartType by remember { mutableIntStateOf(0) }
     val categories = categoryViewModel.categories.observeAsState(initial = emptyList())
     val cards = creditCardViewModel.allCards.observeAsState(initial = emptyList())
 
     val categoryMap = categories.value.associateBy { it.id }
     val cardMap = cards.value.associateBy { it.id }
+
+    // Indice da visualizacao (0=Lista, 1=Barras, 2=Pizza) por aba.
+    val viewByTab = remember { mutableIntStateOf(0) }
+
+    val pagerState = rememberPagerState(initialPage = 1) { VIEW_COUNT }
+
+    // Sincroniza o pager com o indice guardado da aba (troca de aba reseta/restaura).
+    LaunchedEffect(selectedTab) {
+        if (pagerState.currentPage != viewByTab.intValue + 1) {
+            pagerState.scrollToPage(viewByTab.intValue + 1)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        val view = ((pagerState.currentPage - 1) % VIEW_COUNT + VIEW_COUNT) % VIEW_COUNT
+        viewByTab.intValue = view
+    }
+
+    var selectedCategoryIndex by remember(selectedTab) { mutableStateOf<Int?>(null) }
+    var selectedCardIndex by remember(selectedTab) { mutableStateOf<Int?>(null) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -100,22 +123,6 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                listOf("Lista", "Gráficos").forEachIndexed { index, label ->
-                    SegmentedButton(
-                        selected = viewMode == index,
-                        onClick = { viewMode = index },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = 2)
-                    ) {
-                        Text(text = label, fontSize = 13.sp)
-                    }
-                }
-            }
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -128,169 +135,340 @@ fun ReportsScreen(
                 TabButton(text = "Histórico", selected = selectedTab == 3, onClick = { selectedTab = 3 }, modifier = Modifier.weight(1f))
             }
 
-            if (viewMode == 1 && (selectedTab == 0 || selectedTab == 1)) {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                ) {
-                    listOf("Barras", "Pizza").forEachIndexed { index, label ->
-                        SegmentedButton(
-                            selected = chartType == index,
-                            onClick = { chartType = index },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = 2)
-                        ) {
-                            Text(text = label, fontSize = 13.sp)
-                        }
-                    }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // Swipe circular: paginas infinitas usando modulo VIEW_COUNT.
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                key = { it }
+            ) { page ->
+                val view = ((page - 1) % VIEW_COUNT + VIEW_COUNT) % VIEW_COUNT
+                when (selectedTab) {
+                    0 -> CategoryTabContent(
+                        view = view,
+                        items = expensesByCategory.value,
+                        categoryMap = categoryMap,
+                        totalExpenses = totalExpenses.value,
+                        selectedIndex = selectedCategoryIndex,
+                        onSelect = { selectedCategoryIndex = it }
+                    )
+                    1 -> CardTabContent(
+                        view = view,
+                        items = expensesByCard.value,
+                        cardMap = cardMap,
+                        totalExpenses = totalExpenses.value,
+                        selectedIndex = selectedCardIndex,
+                        onSelect = { selectedCardIndex = it }
+                    )
+                    2 -> SummaryTabContent(
+                        view = view,
+                        totalExpenses = totalExpenses.value,
+                        totalIncome = totalIncome.value,
+                        balance = balance.value
+                    )
+                    else -> HistoryTabContent(
+                        view = view,
+                        balances = monthlyBalances.value
+                    )
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            PageIndicator(
+                selected = viewByTab.intValue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp, top = 4.dp)
+            )
+        }
+    }
+}
 
-            val categoryEntries = expensesByCategory.value
-                .map { item ->
-                    ChartEntry(
-                        label = categoryMap[item.categoryId]?.name ?: "Categoria ${item.categoryId}",
-                        value = item.total,
-                        color = Color((categoryMap[item.categoryId]?.color ?: 0xFF6750A4).toInt())
-                    )
-                }
-                .sortedByDescending { it.value }
-            val cardEntries = expensesByCard.value
-                .map { item ->
-                    ChartEntry(
-                        label = cardMap[item.creditCardId]?.name ?: "Cartão ${item.creditCardId}",
-                        value = item.total,
-                        color = Color((cardMap[item.creditCardId]?.color ?: 0xFF2196F3).toInt())
-                    )
-                }
-                .sortedByDescending { it.value }
+// ---------------------------------------------------------------- abas
 
-            if (viewMode == 1) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    when (selectedTab) {
-                        0 -> {
-                            if (chartType == 0) {
-                                HorizontalBarChart(entries = categoryEntries)
-                            } else {
-                                PieChart(entries = categoryEntries)
-                            }
-                        }
-                        1 -> {
-                            if (chartType == 0) {
-                                HorizontalBarChart(entries = cardEntries)
-                            } else {
-                                PieChart(entries = cardEntries)
-                            }
-                        }
-                        2 -> {
-                            val incomeColor = Color(0xFF4CAF50.toInt())
-                            HorizontalBarChart(
-                                entries = listOf(
-                                    ChartEntry(
-                                        label = "Total de gastos",
-                                        value = totalExpenses.value,
-                                        color = MaterialTheme.colorScheme.error
-                                    ),
-                                    ChartEntry(
-                                        label = "Total de receitas",
-                                        value = totalIncome.value,
-                                        color = incomeColor
-                                    )
-                                )
-                            )
-                            SummaryCard(
-                                title = "Saldo",
-                                amount = balance.value,
-                                color = if (balance.value >= 0) incomeColor else MaterialTheme.colorScheme.error,
-                                icon = if (balance.value >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
-                            )
-                        }
-                        else -> {
-                            VerticalMonthlyBars(
-                                positiveColor = Color(0xFF4CAF50.toInt()),
-                                negativeColor = MaterialTheme.colorScheme.error,
-                                entries = monthlyBalances.value.map { mb ->
-                                    ChartEntry(
-                                        label = mb.month,
-                                        value = mb.balance,
-                                        color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    when (selectedTab) {
-                        0 -> {
-                            items(expensesByCategory.value) { item: TransactionDao.CategoryExpense ->
-                                CategoryExpenseItem(
-                                    item = item,
-                                    category = categoryMap[item.categoryId],
-                                    totalExpenses = totalExpenses.value
-                                )
-                            }
-                        }
-                        1 -> {
-                            items(expensesByCard.value) { item: TransactionDao.CardExpense ->
-                                CardExpenseItem(
-                                    item = item,
-                                    card = cardMap[item.creditCardId],
-                                    totalExpenses = totalExpenses.value
-                                )
-                            }
-                        }
-                        2 -> {
-                            item {
-                                SummaryCard(
-                                    title = "Total de gastos",
-                                    amount = totalExpenses.value,
-                                    color = MaterialTheme.colorScheme.error,
-                                    icon = Icons.Filled.TrendingDown
-                                )
-                            }
-                            item {
-                                SummaryCard(
-                                    title = "Total de receitas",
-                                    amount = totalIncome.value,
-                                    color = Color(0xFF4CAF50.toInt()),
-                                    icon = Icons.Filled.TrendingUp
-                                )
-                            }
-                            item {
-                                SummaryCard(
-                                    title = "Saldo",
-                                    amount = balance.value,
-                                    color = if (balance.value >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error,
-                                    icon = if (balance.value >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
-                                )
-                            }
-                        }
-                        else -> {
-                            items(monthlyBalances.value) { mb ->
-                                MonthlyBalanceItem(mb = mb)
-                            }
-                        }
-                    }
-                }
+@Composable
+private fun CategoryTabContent(
+    view: Int,
+    items: List<TransactionDao.CategoryExpense>,
+    categoryMap: Map<Long, Category>,
+    totalExpenses: Double,
+    selectedIndex: Int?,
+    onSelect: (Int?) -> Unit
+) {
+    val entries = items.map { item ->
+        val cat = categoryMap[item.categoryId]
+        ChartEntry(
+            label = cat?.name ?: "Categoria ${item.categoryId}",
+            value = item.total,
+            color = Color((cat?.color ?: 0xFF6750A4).toInt())
+        )
+    }
+    when (view) {
+        1 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect)
+        2 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect, forcePie = true)
+        else -> LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(items) { item: TransactionDao.CategoryExpense ->
+                CategoryExpenseItem(
+                    item = item,
+                    category = categoryMap[item.categoryId],
+                    totalExpenses = totalExpenses
+                )
             }
         }
     }
 }
 
+@Composable
+private fun CardTabContent(
+    view: Int,
+    items: List<TransactionDao.CardExpense>,
+    cardMap: Map<Long, CreditCard>,
+    totalExpenses: Double,
+    selectedIndex: Int?,
+    onSelect: (Int?) -> Unit
+) {
+    val entries = items.map { item ->
+        val card = cardMap[item.creditCardId]
+        ChartEntry(
+            label = card?.name ?: "Cartão ${item.creditCardId}",
+            value = item.total,
+            color = Color((card?.color ?: 0xFF2196F3).toInt())
+        )
+    }
+    when (view) {
+        1 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect)
+        2 -> ChartTab(entries = entries, selectedIndex = selectedIndex, onSelect = onSelect, forcePie = true)
+        else -> LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(items) { item: TransactionDao.CardExpense ->
+                CardExpenseItem(
+                    item = item,
+                    card = cardMap[item.creditCardId],
+                    totalExpenses = totalExpenses
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryTabContent(
+    view: Int,
+    totalExpenses: Double,
+    totalIncome: Double,
+    balance: Double
+) {
+    val incomeColor = Color(0xFF4CAF50.toInt())
+    val expenseColor = MaterialTheme.colorScheme.error
+
+    when (view) {
+        1, 2 -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val entries = listOf(
+                ChartEntry("Receitas", totalIncome, incomeColor),
+                ChartEntry("Gastos", totalExpenses, expenseColor)
+            )
+            if (view == 2) {
+                PieChart(entries = entries)
+            } else {
+                HorizontalBarChart(entries = entries)
+            }
+            SummaryCard(
+                title = "Saldo",
+                amount = balance,
+                color = if (balance >= 0) incomeColor else expenseColor,
+                icon = if (balance >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
+            )
+        }
+        else -> LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                SummaryCard(
+                    title = "Total de gastos",
+                    amount = totalExpenses,
+                    color = expenseColor,
+                    icon = Icons.Filled.TrendingDown
+                )
+            }
+            item {
+                SummaryCard(
+                    title = "Total de receitas",
+                    amount = totalIncome,
+                    color = incomeColor,
+                    icon = Icons.Filled.TrendingUp
+                )
+            }
+            item {
+                SummaryCard(
+                    title = "Saldo",
+                    amount = balance,
+                    color = if (balance >= 0) incomeColor else expenseColor,
+                    icon = if (balance >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryTabContent(
+    view: Int,
+    balances: List<MonthlyBalance>
+) {
+    when (view) {
+        1, 2 -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            VerticalMonthlyBars(
+                entries = balances.map { mb ->
+                    ChartEntry(
+                        label = mb.month,
+                        value = mb.balance,
+                        color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
+                    )
+                },
+                positiveColor = Color(0xFF4CAF50.toInt()),
+                negativeColor = MaterialTheme.colorScheme.error
+            )
+        }
+        else -> LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(balances) { mb: MonthlyBalance ->
+                MonthlyBalanceItem(mb = mb)
+            }
+        }
+    }
+}
+
+/** Renderiza o grafico (barras ou pizza) com o cabecalho do item tocado. */
+@Composable
+private fun ChartTab(
+    entries: List<ChartEntry>,
+    selectedIndex: Int?,
+    onSelect: (Int?) -> Unit,
+    forcePie: Boolean = false
+) {
+    val sorted = entries.filter { it.value > 0.0 }.sortedByDescending { it.value }
+    val total = sorted.sumOf { it.value }
+    val selected = selectedIndex?.let { sorted.getOrNull(it) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (selected != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = selected.color.copy(alpha = 0.14f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = selected.label,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${money(selected.value)} · ${percentLabel(selected.value, total)}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else if (sorted.isNotEmpty()) {
+            Text(
+                text = "Toque no gráfico para ver a categoria",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (sorted.isEmpty()) {
+            EmptyChartMessage()
+        } else if (forcePie) {
+            PieChart(
+                entries = sorted,
+                selectedIndex = selectedIndex,
+                onSliceClick = { onSelect(it) }
+            )
+        } else {
+            HorizontalBarChart(
+                entries = sorted,
+                selectedIndex = selectedIndex,
+                onBarClick = { onSelect(it) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun PageIndicator(selected: Int, modifier: Modifier = Modifier) {
+    val labels = listOf("Lista", "Barras", "Pizza")
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        labels.forEachIndexed { index, label ->
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .size(if (index == selected) 8.dp else 6.dp)
+                    .background(
+                        color = if (index == selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant
+                        },
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
+            if (index == selected) {
+                Text(
+                    text = label,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 2.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- itens
 
 @Composable
 fun TabButton(
@@ -311,7 +489,7 @@ fun TabButton(
     ) {
         Text(
             text = text,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -324,7 +502,7 @@ fun CategoryExpenseItem(
     category: Category?,
     totalExpenses: Double
 ) {
-    val percentage = if (totalExpenses > 0) (item.total / totalExpenses * 100) else 0f
+    val percentage = if (totalExpenses > 0) (item.total / totalExpenses * 100) else 0.0
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -361,13 +539,13 @@ fun CategoryExpenseItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "%.1f%%".format(percentage),
-                    fontSize = 14.sp,
+                    text = "${percentLabel(item.total, totalExpenses)} do total",
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
-                text = NumberFormat.getCurrencyInstance(Locale.getDefault()).format(item.total),
+                text = money(item.total),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color((category?.color ?: 0xFF6750A4).toInt())
@@ -382,7 +560,6 @@ fun CardExpenseItem(
     card: CreditCard?,
     totalExpenses: Double
 ) {
-    val percentage = if (totalExpenses > 0) (item.total / totalExpenses * 100) else 0f
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -419,13 +596,13 @@ fun CardExpenseItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "%.1f%%".format(percentage),
-                    fontSize = 14.sp,
+                    text = "${percentLabel(item.total, totalExpenses)} do total",
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
-                text = NumberFormat.getCurrencyInstance(Locale.getDefault()).format(item.total),
+                text = money(item.total),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color((card?.color ?: 0xFF2196F3).toInt())
@@ -478,7 +655,7 @@ fun SummaryCard(
                 )
             }
             Text(
-                text = NumberFormat.getCurrencyInstance(Locale.getDefault()).format(amount),
+                text = money(amount),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = color
@@ -509,29 +686,28 @@ fun MonthlyBalanceItem(mb: MonthlyBalance) {
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        text = "Receitas: ${NumberFormat.getCurrencyInstance(Locale.getDefault()).format(mb.income)}",
+                        text = "Receitas: ${money(mb.income)}",
                         fontSize = 12.sp,
                         color = Color(0xFF4CAF50.toInt())
                     )
                     Text(
-                        text = "Gastos: ${NumberFormat.getCurrencyInstance(Locale.getDefault()).format(mb.expenses)}",
+                        text = "Gastos: ${money(mb.expenses)}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.error
                     )
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Saldo: ${NumberFormat.getCurrencyInstance(Locale.getDefault()).format(mb.balance)}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
-                )
-            }
+            Text(
+                text = "Saldo: ${money(mb.balance)}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (mb.balance >= 0) Color(0xFF4CAF50.toInt()) else MaterialTheme.colorScheme.error
+            )
         }
     }
 }
+
+private fun money(value: Double): String =
+    NumberFormat.getCurrencyInstance(Locale.getDefault()).format(value)

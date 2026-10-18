@@ -134,6 +134,9 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE installmentGroupId = :groupId")
     suspend fun deleteByInstallmentGroup(groupId: String): Int
 
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun countAll(): Int
+
     @Query("SELECT * FROM transactions WHERE date >= :startDate AND date <= :endDate ORDER BY date DESC")
     fun getByDateRange(startDate: Long, endDate: Long): Flow<List<Transaction>>
 

@@ -1,5 +1,10 @@
 package com.matheus.gastos.ui.screen.expenses
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.pager.HorizontalPager
@@ -7,6 +12,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,8 +31,10 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -50,6 +59,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -144,6 +155,14 @@ fun ExpensesScreen(
 
     var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
 
+    val isCurrentMonthSelected = isCurrentMonth(selectedMonth)
+
+    fun goToCurrentMonth() {
+        // Caminho idêntico ao das setas: o pager move e o LaunchedEffect(pagerState.currentPage)
+        // propaga para o ViewModel. Não chamar setSelectedMonth aqui para evitar dupla navegação/bounce.
+        scope.launch { pagerState.animateScrollToPage(centerPage) }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -176,12 +195,49 @@ fun ExpensesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddExpense,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Adicionar transacao")
+            // Coluna alinhada ao End: o atalho fica acima do FAB e não cobre a lista
+            // (a LazyColumn já reserva 96.dp de padding inferior).
+            Column(horizontalAlignment = Alignment.End) {
+                AnimatedVisibility(
+                    visible = !isCurrentMonthSelected,
+                    enter = fadeIn() + scaleIn(initialScale = 0.85f),
+                    exit = fadeOut() + scaleOut(targetScale = 0.85f)
+                ) {
+                    SmallFloatingActionButton(
+                        onClick = { goToCurrentMonth() },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.semantics {
+                            contentDescription = "Voltar para o mes atual"
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Today,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Mes atual",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                FloatingActionButton(
+                    onClick = onAddExpense,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Adicionar transacao")
+                }
             }
         }
     ) { innerPadding ->

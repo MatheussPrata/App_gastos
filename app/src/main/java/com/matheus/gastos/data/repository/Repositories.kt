@@ -14,6 +14,7 @@ import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.AppSettings
 import com.matheus.gastos.data.entity.BudgetPeriod
+import com.matheus.gastos.data.entity.PaymentMethod
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Date
@@ -30,6 +31,9 @@ class CategoryRepository(private val dao: CategoryDao) {
     fun getByType(isExpense: Boolean): Flow<List<Category>> = dao.getByType(isExpense)
     suspend fun getById(id: Long) = dao.getById(id)
     suspend fun count(): Int = dao.count()
+
+    /** Lê as categorias uma única vez (fora de Flow), útil para seeds síncronos. */
+    suspend fun getAllOnce(): List<Category> = dao.getAllOnce()
 
     /**
      * Garante que as categorias padrão existam, mesmo em bancos antigos/parciais.
@@ -201,6 +205,77 @@ class TransactionRepository(private val dao: TransactionDao) {
             installments.add(installment)
         }
         dao.insertAll(installments)
+    }
+
+    /**
+     * Popula lançamentos de demonstração APENAS quando não há nenhuma transação.
+     *
+     * É IDEMPOTENTE: se já existir qualquer transação, não faz nada.
+     * Deve ser chamado depois de [CategoryRepository.seedDefaultsIfEmpty] e com as
+     * categorias já carregadas, para não depender de novas dependências no construtor.
+     */
+    suspend fun seedDemoIfEmpty(categories: List<Category>) {
+        if (dao.countAll() > 0) return
+
+        val now = System.currentTimeMillis()
+        val expenseCategories = categories.filter { it.isExpenseDefault }
+        val incomeCategories = categories.filter { !it.isExpenseDefault }
+
+        val salaryCategory = incomeCategories.firstOrNull {
+            it.name.trim().equals("Salário", ignoreCase = true)
+        } ?: incomeCategories.firstOrNull()
+        val housingCategory = expenseCategories.firstOrNull {
+            it.name.trim().equals("Moradia", ignoreCase = true)
+        } ?: expenseCategories.firstOrNull()
+        val leisureCategory = expenseCategories.firstOrNull {
+            it.name.trim().equals("Lazer", ignoreCase = true)
+        } ?: expenseCategories.firstOrNull()
+
+        // 1. Salário (entrada)
+        insert(
+            Transaction(
+                description = "Salário",
+                amount = 2300.0,
+                date = now,
+                isExpense = false,
+                categoryId = salaryCategory?.id,
+                paymentMethod = PaymentMethod.DINHEIRO,
+                isInstallment = false,
+                installmentNumber = 1,
+                totalInstallments = 1
+            )
+        )
+
+        // 2. Casa (gasto)
+        insert(
+            Transaction(
+                description = "Casa",
+                amount = 900.0,
+                date = now,
+                isExpense = true,
+                categoryId = housingCategory?.id,
+                paymentMethod = PaymentMethod.DINHEIRO,
+                isInstallment = false,
+                installmentNumber = 1,
+                totalInstallments = 1
+            )
+        )
+
+        // 3. Drone (gasto parcelado em 6x -> 6 x R$ 100,00)
+        createInstallments(
+            baseTransaction = Transaction(
+                description = "Drone",
+                amount = 600.0,
+                date = now,
+                isExpense = true,
+                categoryId = leisureCategory?.id,
+                paymentMethod = PaymentMethod.DINHEIRO
+            ),
+            totalInstallments = 6,
+            categoryId = leisureCategory?.id,
+            subcategoryId = null,
+            creditCardId = null
+        )
     }
 
     fun getMonthlyBalances(): Flow<List<MonthlyBalance>> = dao.getMonthlyBalances()
