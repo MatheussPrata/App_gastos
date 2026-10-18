@@ -47,19 +47,16 @@ private val CardColorOptions = listOf(
     0xFF3F51B5.toInt(), 0xFF00BCD4.toInt(), 0xFF8BC34A.toInt(), 0xFF795548.toInt()
 )
 
-private fun formatAmount(value: Double): String {
-    return if (value == value.toLong().toDouble()) {
-        value.toLong().toString()
-    } else {
-        String.format(java.util.Locale.US, "%.2f", value)
-    }
+/** Exibe o limite no padrão pt-BR ("1234,56"); vazio quando não há limite. */
+private fun formatLimitForInput(value: Double): String {
+    if (value <= 0.0) return ""
+    val format = java.text.NumberFormat.getNumberInstance(java.util.Locale.getDefault())
+    format.minimumFractionDigits = 2
+    format.maximumFractionDigits = 2
+    format.isGroupingUsed = false
+    return format.format(value)
 }
 
-/**
- * Popup reutilizável para adicionar/editar um "cartão".
- * O cartão aqui serve apenas para ORGANIZAR as contas: por isso a UI expõe
- * somente nome, cor, limite e ativo/inativo (sem bandeira/número).
- */
 @Composable
 fun AddCardDialog(
     cardId: Long = 0L,
@@ -69,6 +66,7 @@ fun AddCardDialog(
     val editing = cardId != 0L
     val scope = rememberCoroutineScope()
 
+    var original by remember { mutableStateOf<CreditCard?>(null) }
     var name by remember { mutableStateOf("") }
     val color = remember { mutableIntStateOf(0xFF6750A4.toInt()) }
     var limitAmount by remember { mutableStateOf("") }
@@ -80,15 +78,24 @@ fun AddCardDialog(
         if (editing) {
             val card = creditCardViewModel.getById(cardId)
             if (card != null) {
+                original = card
                 name = card.name
                 color.intValue = card.color
-                limitAmount = if (card.limitAmount > 0.0) formatAmount(card.limitAmount) else ""
+                limitAmount = formatLimitForInput(card.limitAmount)
                 closingDay = card.closingDay.toString()
                 dueDay = card.dueDay.toString()
                 isActive = card.isActive
             }
         }
     }
+
+    // Em edição, só valida depois que o cartão carregou (evita piscar erro no nome).
+    val loaded = !editing || original != null
+    val nameError = loaded && name.isBlank()
+    val limitError = loaded && !isValidLimitInput(limitAmount)
+    val closingError = loaded && !isValidDayInput(closingDay)
+    val dueError = loaded && !isValidDayInput(dueDay)
+    val canSave = loaded && !limitError && !closingError && !dueError
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -110,6 +117,10 @@ fun AddCardDialog(
                     onValueChange = { name = it },
                     label = { Text("Nome") },
                     singleLine = true,
+                    isError = nameError,
+                    supportingText = if (nameError) {
+                        { Text("Informe um nome para o cartão") }
+                    } else null,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions.Default
                 )
@@ -120,7 +131,15 @@ fun AddCardDialog(
                         limitAmount = input.filter { it.isDigit() || it == '.' || it == ',' }
                     },
                     label = { Text("Limite (R$)") },
+                    placeholder = { Text("0,00") },
                     singleLine = true,
+                    isError = limitError,
+                    supportingText = {
+                        Text(
+                            if (limitError) "Limite inválido"
+                            else "Opcional — deixe em branco se não houver limite"
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
@@ -139,6 +158,10 @@ fun AddCardDialog(
                         label = { Text("Fechamento") },
                         suffix = { Text("dia") },
                         singleLine = true,
+                        isError = closingError,
+                        supportingText = if (closingError) {
+                            { Text("1 a 31") }
+                        } else null,
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
@@ -152,6 +175,10 @@ fun AddCardDialog(
                         label = { Text("Vencimento") },
                         suffix = { Text("dia") },
                         singleLine = true,
+                        isError = dueError,
+                        supportingText = if (dueError) {
+                            { Text("1 a 31") }
+                        } else null,
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
@@ -206,24 +233,40 @@ fun AddCardDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = name.isNotBlank(),
+                enabled = canSave,
                 onClick = {
-                    val limit = limitAmount.replace(",", ".").toDoubleOrNull() ?: 0.0
-                    val closing = closingDay.toIntOrNull()?.coerceIn(1, 31) ?: 1
-                    val due = dueDay.toIntOrNull()?.coerceIn(1, 31) ?: 10
-                    val card = CreditCard(
-                        id = if (editing) cardId else 0,
-                        name = name.trim(),
-                        color = color.intValue,
-                        limitAmount = limit,
-                        closingDay = closing,
-                        dueDay = due,
-                        isActive = isActive
-                    )
+                    val limit = parseLimit(limitAmount)
+                    val closing = coerceDay(closingDay, defaultValue = 1)
+                    val due = coerceDay(dueDay, defaultValue = 10)
                     scope.launch {
-                        if (editing) creditCardViewModel.update(card)
-                        else creditCardViewModel.insert(card)
-                        onDismiss()
+                    // Nunca atualizar com id 0: se o load falhou, insere como novo.
+                    val base = original ?: if (editing) {
+                        creditCardViewModel.getById(cardId)
+                    } else null
+                    val card = if (base != null) {
+                        base.copy(
+                            name = name.trim(),
+                            color = color.intValue,
+                            limitAmount = limit,
+                            closingDay = closing,
+                            dueDay = due,
+                            isActive = isActive,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    } else {
+                        CreditCard(
+                            id = 0,
+                            name = name.trim(),
+                            color = color.intValue,
+                            limitAmount = limit,
+                            closingDay = closing,
+                            dueDay = due,
+                            isActive = isActive
+                        )
+                    }
+                    if (base != null) creditCardViewModel.update(card)
+                    else creditCardViewModel.insert(card)
+                    onDismiss()
                     }
                 }
             ) {

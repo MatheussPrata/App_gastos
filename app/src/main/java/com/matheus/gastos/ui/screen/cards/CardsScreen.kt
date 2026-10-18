@@ -29,6 +29,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,15 +46,52 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
-import java.util.Locale
+
+/**
+ * Soma o valor (absoluto) das despesas de um cartão, opcionalmente filtradas
+ * por mês (mesmo ano/mês de [monthTimestamp]; null = todas).
+ * Função pura para ser testável em JVM.
+ */
+internal fun cardUsage(
+    transactions: List<Transaction>,
+    cardId: Long,
+    monthTimestamp: Long? = null,
+    zone: java.time.ZoneId = java.time.ZoneId.systemDefault()
+): Double {
+    val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(zone))
+    if (monthTimestamp != null) cal.timeInMillis = monthTimestamp
+    val year = cal.get(java.util.Calendar.YEAR)
+    val month = cal.get(java.util.Calendar.MONTH)
+
+    return transactions.asSequence()
+        .filter { it.creditCardId == cardId && it.isExpense }
+        .filter { tx ->
+            if (monthTimestamp == null) return@filter true
+            val txCal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(zone)).apply {
+                timeInMillis = tx.date
+            }
+            txCal.get(java.util.Calendar.YEAR) == year && txCal.get(java.util.Calendar.MONTH) == month
+        }
+        .sumOf { kotlin.math.abs(it.amount) }
+}
+
+/** Fração de uso do limite em 0f..1f (seguro para limite 0 ou negativo). */
+internal fun usageFraction(used: Double, limit: Double): Float {
+    if (limit <= 0.0) return 0f
+    return (used / limit).toFloat().coerceIn(0f, 1f)
+}
+
+private fun formatMoney(value: Double): String =
+    java.text.NumberFormat.getCurrencyInstance(java.util.Locale.getDefault()).format(value)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +103,10 @@ fun CardsScreen(
 ) {
     val cardsState = viewModel.allCards.observeAsState(initial = emptyList())
     val cards = cardsState.value
+    val monthTransactions = transactionViewModel.currentMonthTransactions
+        .observeAsState(initial = emptyList()).value
+    val monthTimestamp = transactionViewModel.selectedMonth
+        .observeAsState(initial = System.currentTimeMillis()).value
     val scope = rememberCoroutineScope()
     var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
 
@@ -159,7 +201,7 @@ fun CardsScreen(
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = NumberFormat.getCurrencyInstance(Locale.getDefault()).format(card.limitAmount),
+                                            text = if (card.limitAmount > 0.0) formatMoney(card.limitAmount) else "Sem limite",
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -168,6 +210,34 @@ fun CardsScreen(
                                             text = "Limite",
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                if (card.limitAmount > 0.0) {
+                                    val used = cardUsage(monthTransactions, card.id, monthTimestamp)
+                                    val fraction = usageFraction(used, card.limitAmount)
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp)
+                                    ) {
+                                        LinearProgressIndicator(
+                                            progress = { fraction },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(6.dp),
+                                            strokeCap = StrokeCap.Round,
+                                            color = if (fraction >= 1f) MaterialTheme.colorScheme.error
+                                            else MaterialTheme.colorScheme.primary,
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Usado ${formatMoney(used)} de ${formatMoney(card.limitAmount)}",
+                                            fontSize = 12.sp,
+                                            color = if (fraction >= 1f) MaterialTheme.colorScheme.error
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }

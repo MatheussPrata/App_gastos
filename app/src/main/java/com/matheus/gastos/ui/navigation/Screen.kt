@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -81,6 +82,12 @@ object EditCategory : Screen {
     override val route = "edit_category/{categoryId}"
     override val title = "Editar Categoria"
     override val icon = Icons.Filled.Add
+}
+
+object BudgetLimits : Screen {
+    override val route = "budget_limits"
+    override val title = "Limites de Gasto"
+    override val icon = Icons.Filled.Speed
 }
 
 val mainScreens = listOf(Expenses, Cards, Reports, Settings)

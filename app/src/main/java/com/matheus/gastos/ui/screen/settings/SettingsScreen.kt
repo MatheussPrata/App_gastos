@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.matheus.gastos.ui.theme.AppearanceState
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.SettingsViewModel
@@ -66,11 +67,17 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel,
     categoryViewModel: CategoryViewModel,
     creditCardViewModel: CreditCardViewModel,
-    onNavigateToCategories: () -> Unit
+    onNavigateToCategories: () -> Unit,
+    onNavigateToBudgetLimits: () -> Unit = {}
 ) {
     val themeMode = settingsViewModel.themeMode.observeAsState(initial = 0)
     val accentColor = settingsViewModel.accentColor.observeAsState(initial = 0xFF6750A4.toInt())
     val notificationsEnabled = settingsViewModel.notificationsEnabled.observeAsState(initial = true)
+
+    // AppearanceState e a fonte unica de verdade: reflete a troca imediatamente em todas as telas.
+    // Antes do primeiro load, usa os valores do LiveData.
+    val currentThemeMode = if (AppearanceState.isLoaded) AppearanceState.themeMode else themeMode.value
+    val currentAccentColor = if (AppearanceState.isLoaded) AppearanceState.accentColor else accentColor.value
 
     var showColorPicker by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -96,7 +103,7 @@ fun SettingsScreen(
                 SettingsSection(title = "Aparência") {
                     SettingsItem(
                         title = "Tema",
-                        subtitle = when (themeMode.value) {
+                        subtitle = when (currentThemeMode) {
                             0 -> "Sistema"
                             1 -> "Claro"
                             2 -> "Escuro"
@@ -114,7 +121,7 @@ fun SettingsScreen(
                             Box(
                                 modifier = Modifier
                                     .size(24.dp)
-                                    .background(Color(accentColor.value), RoundedCornerShape(12.dp))
+                                    .background(Color(currentAccentColor), RoundedCornerShape(12.dp))
                             )
                         },
                         onClick = { showColorPicker = true }
@@ -149,7 +156,7 @@ fun SettingsScreen(
                         title = "Gerenciar Limites",
                         subtitle = "Defina limites por categoria e período",
                         icon = Icons.Filled.Speed,
-                        onClick = { }
+                        onClick = onNavigateToBudgetLimits
                     )
                 }
             }
@@ -204,7 +211,7 @@ fun SettingsScreen(
 
         if (showThemeDialog) {
             ThemePickerDialog(
-                currentMode = themeMode.value,
+                currentMode = currentThemeMode,
                 onModeSelected = { mode ->
                     coroutineScope.launch { settingsViewModel.setThemeMode(mode) }
                     showThemeDialog = false
@@ -215,7 +222,7 @@ fun SettingsScreen(
 
         if (showColorPicker) {
             ColorPickerDialog(
-                currentColor = accentColor.value,
+                currentColor = currentAccentColor,
                 onColorSelected = { color ->
                     coroutineScope.launch { settingsViewModel.setAccentColor(color) }
                     showColorPicker = false

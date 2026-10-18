@@ -33,11 +33,11 @@ object AppearanceState {
         isLoaded = true
     }
 
-    fun setThemeMode(mode: Int) {
+    fun updateThemeMode(mode: Int) {
         themeMode = mode
     }
 
-    fun setAccentColor(color: Int) {
+    fun updateAccentColor(color: Int) {
         accentColor = color
     }
 }

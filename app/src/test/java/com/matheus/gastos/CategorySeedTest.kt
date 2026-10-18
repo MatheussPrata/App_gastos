@@ -39,7 +39,7 @@ class CategorySeedTest {
 
     @Test
     fun `seedDefaultsIfEmpty inserts when database is empty`() = runTest {
-        whenever(dao.count()).thenReturn(0)
+        whenever(dao.getAllOnce()).thenReturn(emptyList())
 
         repository.seedDefaultsIfEmpty()
 
@@ -50,7 +50,7 @@ class CategorySeedTest {
 
     @Test
     fun `seedDefaultsIfEmpty does nothing when categories already exist`() = runTest {
-        whenever(dao.count()).thenReturn(3)
+        whenever(dao.getAllOnce()).thenReturn(CategoryRepository.defaultCategories())
 
         repository.seedDefaultsIfEmpty()
 

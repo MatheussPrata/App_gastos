@@ -39,6 +39,7 @@ fun MainScreen(
     onNavigateToAddExpense: () -> Unit = {},
     onNavigateToEditExpense: (Long) -> Unit = {},
     onNavigateToCategories: () -> Unit = {},
+    onNavigateToBudgetLimits: () -> Unit = {},
     onNavigateToTab: (Screen) -> Unit = {}
 ) {
     val transactionViewModel: TransactionViewModel = hiltViewModel()
@@ -119,7 +120,8 @@ fun MainScreen(
                     settingsViewModel = settingsViewModel,
                     categoryViewModel = categoryViewModel,
                     creditCardViewModel = creditCardViewModel,
-                    onNavigateToCategories = onNavigateToCategories
+                    onNavigateToCategories = onNavigateToCategories,
+                    onNavigateToBudgetLimits = onNavigateToBudgetLimits
                 )
                 else -> {}
             }

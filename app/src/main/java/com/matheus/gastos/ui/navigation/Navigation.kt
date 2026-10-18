@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.matheus.gastos.ui.screen.add_expense.AddExpenseScreen
+import com.matheus.gastos.ui.screen.budget.BudgetLimitsScreen
 import com.matheus.gastos.ui.screen.categories.CategoriesScreen
 import com.matheus.gastos.ui.screen.main.MainScreen
 
@@ -20,7 +21,8 @@ fun AppNavHost() {
                 currentScreen = Expenses,
                 onNavigateToAddExpense = { navController.navigate(AddExpense.route) },
                 onNavigateToEditExpense = { id -> navController.navigate("edit_expense/$id") },
-                onNavigateToCategories = { navController.navigate(Categories.route) }
+                onNavigateToCategories = { navController.navigate(Categories.route) },
+                onNavigateToBudgetLimits = { navController.navigate(BudgetLimits.route) }
             )
         }
         composable(Cards.route) {
@@ -28,19 +30,22 @@ fun AppNavHost() {
                 currentScreen = Cards,
                 onNavigateToAddExpense = { navController.navigate(AddExpense.route) },
                 onNavigateToEditExpense = { id -> navController.navigate("edit_expense/$id") },
-                onNavigateToCategories = { navController.navigate(Categories.route) }
+                onNavigateToCategories = { navController.navigate(Categories.route) },
+                onNavigateToBudgetLimits = { navController.navigate(BudgetLimits.route) }
             )
         }
         composable(Reports.route) {
             MainScreen(
                 currentScreen = Reports,
-                onNavigateToCategories = { navController.navigate(Categories.route) }
+                onNavigateToCategories = { navController.navigate(Categories.route) },
+                onNavigateToBudgetLimits = { navController.navigate(BudgetLimits.route) }
             )
         }
         composable(Settings.route) {
             MainScreen(
                 currentScreen = Settings,
-                onNavigateToCategories = { navController.navigate(Categories.route) }
+                onNavigateToCategories = { navController.navigate(Categories.route) },
+                onNavigateToBudgetLimits = { navController.navigate(BudgetLimits.route) }
             )
         }
 
@@ -60,6 +65,9 @@ fun AppNavHost() {
                 onSave = { navController.popBackStack() },
                 onCancel = { navController.popBackStack() }
             )
+        }
+        composable(BudgetLimits.route) {
+            BudgetLimitsScreen(onBack = { navController.popBackStack() })
         }
         composable(Categories.route) {
             CategoriesScreen(

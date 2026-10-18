@@ -16,6 +16,7 @@ import com.matheus.gastos.data.repository.BudgetLimitRepository
 import com.matheus.gastos.data.repository.SettingsRepository
 import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
+import com.matheus.gastos.ui.theme.AppearanceState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -205,19 +206,24 @@ class SettingsViewModel @Inject constructor(private val repo: SettingsRepository
 
     private fun loadSettings() {
         viewModelScope.launch {
-            _themeMode.value = repo.getInt("theme_mode", 0)
-            _accentColor.value = repo.getInt("accent_color", 0xFF6750A4.toInt())
+            val mode = repo.getInt("theme_mode", 0)
+            val color = repo.getInt("accent_color", 0xFF6750A4.toInt())
+            _themeMode.value = mode
+            _accentColor.value = color
+            AppearanceState.apply(mode, color)
             _notificationsEnabled.value = repo.getBoolean("notifications_enabled", true)
         }
     }
 
     suspend fun setThemeMode(mode: Int) {
         _themeMode.value = mode
+        AppearanceState.updateThemeMode(mode)
         repo.putInt("theme_mode", mode)
     }
 
     suspend fun setAccentColor(color: Int) {
         _accentColor.value = color
+        AppearanceState.updateAccentColor(color)
         repo.putInt("accent_color", color)
     }
 
