@@ -60,6 +60,11 @@ data class CreditCard(
     val closingDay: Int = 1,
     val dueDay: Int = 10,
     val isActive: Boolean = true,
+    /**
+     * URI de foto/imagem personalizada do cartao (estilo carteira).
+     * Preenchida pelo seletor de imagem da galeria; null = usa apenas a cor.
+     */
+    val imageUri: String? = null,
     val sortOrder: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()

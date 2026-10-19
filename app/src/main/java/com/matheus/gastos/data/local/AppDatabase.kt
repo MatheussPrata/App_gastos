@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.matheus.gastos.data.dao.AppSettingsDao
 import com.matheus.gastos.data.dao.BudgetLimitDao
 import com.matheus.gastos.data.dao.CategoryDao
@@ -28,7 +30,7 @@ import com.matheus.gastos.data.entity.Transaction
         BudgetLimit::class,
         AppSettings::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -44,13 +46,25 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        /**
+         * v2 -> v3: cartao ganhou foto personalizada (estilo carteira).
+         * Migracao real (ALTER TABLE) para NAO apagar os dados do usuario.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE credit_cards ADD COLUMN imageUri TEXT")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "gastos-db"
-                ).fallbackToDestructiveMigration()
+                )
+                    .addMigrations(MIGRATION_2_3)
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

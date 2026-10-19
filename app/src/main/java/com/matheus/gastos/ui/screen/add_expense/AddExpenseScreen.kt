@@ -50,9 +50,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.matheus.gastos.data.entity.Category
+import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.PaymentMethod
 import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.ui.components.SelectorField
+import com.matheus.gastos.ui.components.WalletCardView
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
@@ -377,9 +379,9 @@ fun AddExpenseScreen(
     }
 
     if (showCardDialog) {
-        SelectionDialog(
-            title = "Cartão",
-            options = cards.map { it.id to it.name },
+        WalletCardPickerDialog(
+            cards = cards,
+            selectedCardId = selectedCardId,
             onDismiss = { showCardDialog = false },
             onSelected = { id ->
                 selectedCardId = id
@@ -397,6 +399,47 @@ fun AddExpenseScreen(
             }
         )
     }
+}
+
+/**
+ * Seletor de cartao no estilo carteira (Google Wallet):
+ * cada cartao aparece renderizado como um cartao de verdade,
+ * empilhados verticalmente, e o selecionado fica destacado.
+ */
+@Composable
+private fun WalletCardPickerDialog(
+    cards: List<CreditCard>,
+    selectedCardId: Long?,
+    onDismiss: () -> Unit,
+    onSelected: (Long) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Escolha o cartão", fontWeight = FontWeight.SemiBold) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        },
+        text = {
+            if (cards.isEmpty()) {
+                Text("Nenhum cartão cadastrado.")
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    cards.forEach { card ->
+                        WalletCardView(
+                            card = card,
+                            selected = card.id == selectedCardId,
+                            onClick = { onSelected(card.id) }
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable

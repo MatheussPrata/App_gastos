@@ -1,5 +1,8 @@
 package com.matheus.gastos.ui.screen.add_card
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matheus.gastos.data.entity.CreditCard
+import com.matheus.gastos.ui.components.WalletCardView
 import com.matheus.gastos.viewmodel.CreditCardViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -73,6 +77,16 @@ fun AddCardDialog(
     var closingDay by remember { mutableStateOf("1") }
     var dueDay by remember { mutableStateOf("10") }
     var isActive by remember { mutableStateOf(true) }
+    // Foto personalizada do cartao (estilo carteira). null = usa so a cor.
+    var imageUri by remember { mutableStateOf<String?>(null) }
+
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            imageUri = uri.toString()
+        }
+    }
 
     LaunchedEffect(cardId) {
         if (editing) {
@@ -85,6 +99,7 @@ fun AddCardDialog(
                 closingDay = card.closingDay.toString()
                 dueDay = card.dueDay.toString()
                 isActive = card.isActive
+                imageUri = card.imageUri
             }
         }
     }
@@ -112,6 +127,34 @@ fun AddCardDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Previa do cartao como ele vai aparecer na carteira.
+                WalletCardView(
+                    card = CreditCard(
+                        name = name.ifBlank { "Novo cartão" },
+                        color = color.intValue,
+                        closingDay = coerceDay(closingDay, defaultValue = 1),
+                        dueDay = coerceDay(dueDay, defaultValue = 10),
+                        imageUri = imageUri
+                    )
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            photoPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    ) {
+                        Text(if (imageUri == null) "Escolher foto" else "Trocar foto")
+                    }
+                    if (imageUri != null) {
+                        TextButton(onClick = { imageUri = null }) {
+                            Text("Remover foto")
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -251,6 +294,7 @@ fun AddCardDialog(
                             closingDay = closing,
                             dueDay = due,
                             isActive = isActive,
+                            imageUri = imageUri,
                             updatedAt = System.currentTimeMillis()
                         )
                     } else {
@@ -261,7 +305,8 @@ fun AddCardDialog(
                             limitAmount = limit,
                             closingDay = closing,
                             dueDay = due,
-                            isActive = isActive
+                            isActive = isActive,
+                            imageUri = imageUri
                         )
                     }
                     if (base != null) creditCardViewModel.update(card)
