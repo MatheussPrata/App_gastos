@@ -37,6 +37,8 @@ fun AppNavHost() {
         composable(Reports.route) {
             MainScreen(
                 currentScreen = Reports,
+                onNavigateToAddExpense = { navController.navigate(AddExpense.route) },
+                onNavigateToEditExpense = { id -> navController.navigate("edit_expense/$id") },
                 onNavigateToCategories = { navController.navigate(Categories.route) },
                 onNavigateToBudgetLimits = { navController.navigate(BudgetLimits.route) }
             )
@@ -44,6 +46,8 @@ fun AppNavHost() {
         composable(Settings.route) {
             MainScreen(
                 currentScreen = Settings,
+                onNavigateToAddExpense = { navController.navigate(AddExpense.route) },
+                onNavigateToEditExpense = { id -> navController.navigate("edit_expense/$id") },
                 onNavigateToCategories = { navController.navigate(Categories.route) },
                 onNavigateToBudgetLimits = { navController.navigate(BudgetLimits.route) }
             )

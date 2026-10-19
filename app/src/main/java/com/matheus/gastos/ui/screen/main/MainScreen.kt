@@ -1,10 +1,21 @@
 package com.matheus.gastos.ui.screen.main
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
@@ -29,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -175,12 +187,17 @@ fun MainScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
+            Box {
             NavigationBar(
                 // surfaceContainer e derivado da cor de destaque em Theme.kt,
                 // entao a barra acompanha a troca de tema.
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ) {
-                mainScreens.forEach { screen ->
+                // 5 abas: o botao central (+) fica entre a 2a e a 3a.
+                val left = mainScreens.take(mainScreens.size / 2)
+                val right = mainScreens.drop(mainScreens.size / 2)
+
+                (left + right).forEach { screen ->
                     val isSelected = selectedScreen == screen
                     NavigationBarItem(
                         selected = isSelected,
@@ -189,21 +206,50 @@ fun MainScreen(
                             onNavigateToTab(screen)
                         },
                         icon = {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = screen.title
-                            )
+                            // Icone em circulo quando a aba esta ativa (era quadrado).
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.secondaryContainer
+                                        } else {
+                                            Color.Transparent
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = screen.icon,
+                                    contentDescription = screen.title,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         },
                         label = { Text(screen.title) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
+            }
+
+            // Botao central (+) saltando para fora da navbar.
+            FloatingActionButton(
+                onClick = onNavigateToAddExpense,
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-26).dp)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Adicionar transação")
+            }
             }
         }
     ) { innerPadding ->
