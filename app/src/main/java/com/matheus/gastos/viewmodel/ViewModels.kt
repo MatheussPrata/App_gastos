@@ -7,6 +7,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.CreditCard
+import com.matheus.gastos.data.entity.ShoppingItem
 import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.repository.CategoryRepository
@@ -14,6 +15,7 @@ import com.matheus.gastos.data.repository.CreditCardRepository
 import com.matheus.gastos.data.repository.TransactionRepository
 import com.matheus.gastos.data.repository.BudgetLimitRepository
 import com.matheus.gastos.data.repository.SettingsRepository
+import com.matheus.gastos.data.repository.ShoppingRepository
 import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.ui.theme.AppearanceState
@@ -55,6 +57,37 @@ class CreditCardViewModel @Inject constructor(private val repo: CreditCardReposi
     suspend fun delete(card: CreditCard) = repo.delete(card)
     suspend fun deleteById(id: Long) = repo.deleteById(id)
     suspend fun getById(id: Long) = repo.getById(id)
+}
+
+@HiltViewModel
+class ShoppingViewModel @Inject constructor(
+    private val repo: ShoppingRepository
+) : ViewModel() {
+    val items = repo.getAll().asLiveData(viewModelScope.coroutineContext)
+
+    fun add(name: String, category: String, quantity: String = "") {
+        viewModelScope.launch { repo.addQuick(name, category, quantity) }
+    }
+
+    fun toggle(item: ShoppingItem) {
+        viewModelScope.launch { repo.toggle(item) }
+    }
+
+    fun update(item: ShoppingItem) {
+        viewModelScope.launch { repo.update(item) }
+    }
+
+    fun delete(item: ShoppingItem) {
+        viewModelScope.launch { repo.delete(item) }
+    }
+
+    fun clearChecked() {
+        viewModelScope.launch { repo.clearChecked() }
+    }
+
+    fun clearAll() {
+        viewModelScope.launch { repo.clearAll() }
+    }
 }
 
 @HiltViewModel

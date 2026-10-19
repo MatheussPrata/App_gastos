@@ -123,3 +123,41 @@ data class AppSettings(
 enum class BudgetPeriod {
     DAILY, WEEKLY, MONTHLY, YEARLY
 }
+
+/**
+ * Item da lista de compras (item 37).
+ *
+ * Persistido localmente (Room) para sobreviver a fechamento do app.
+ * Separado por categoria de compra (Açougue, Padaria, Limpeza...) - uma
+ * dimensao propria, independente das categorias financeiras.
+ */
+@Entity(tableName = "shopping_items")
+data class ShoppingItem(
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
+    val name: String,
+    val quantity: String = "",
+    val category: String = ShoppingCategory.OUTROS,
+    val isChecked: Boolean = false,
+    val sortOrder: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Categorias praticas de supermercado, na ordem em que aparecem na lista. */
+object ShoppingCategory {
+    const val ACOUGUE = "Açougue"
+    const val PADARIA = "Padaria"
+    const val HORTIFRUTI = "Hortifruti"
+    const val MERCEARIA = "Mercearia"
+    const val FRIOS = "Frios e Laticínios"
+    const val BEBIDAS = "Bebidas"
+    const val LIMPEZA = "Limpeza"
+    const val HIGIENE = "Higiene"
+    const val CONGELADOS = "Congelados"
+    const val OUTROS = "Outros"
+
+    val all = listOf(
+        ACOUGUE, PADARIA, HORTIFRUTI, MERCEARIA, FRIOS,
+        BEBIDAS, LIMPEZA, HIGIENE, CONGELADOS, OUTROS
+    )
+}

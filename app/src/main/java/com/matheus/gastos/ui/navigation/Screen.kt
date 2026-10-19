@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TrendingUp
@@ -36,6 +37,12 @@ object Compare : Screen {
     override val route = "compare"
     override val title = "Comparador"
     override val icon = Icons.Filled.CompareArrows
+}
+
+object Shopping : Screen {
+    override val route = "shopping"
+    override val title = "Lista"
+    override val icon = Icons.Filled.ShoppingBasket
 }
 
 object Reports : Screen {
@@ -99,5 +106,4 @@ object BudgetLimits : Screen {
 }
 
 // "Cartões" saiu da barra inferior: agora é acessado pelo menu lateral e pelas Configurações.
-// O slot livre foi ocupado pelo Comparador de precos.
-val mainScreens = listOf(Expenses, Compare, Reports, Settings)
+val mainScreens = listOf(Expenses, Compare, Shopping, Reports, Settings)

@@ -9,6 +9,7 @@ import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.AppSettings
+import com.matheus.gastos.data.entity.ShoppingItem
 import com.matheus.gastos.data.entity.BudgetPeriod
 import kotlinx.coroutines.flow.Flow
 
@@ -239,4 +240,33 @@ interface AppSettingsDao {
 
     @Query("SELECT * FROM app_settings")
     fun getAll(): Flow<List<AppSettings>>
+}
+@Dao
+interface ShoppingItemDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: ShoppingItem): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<ShoppingItem>)
+
+    @Update
+    suspend fun update(item: ShoppingItem)
+
+    @Delete
+    suspend fun delete(item: ShoppingItem)
+
+    @Query("DELETE FROM shopping_items WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM shopping_items WHERE isChecked = 1")
+    suspend fun clearChecked()
+
+    @Query("DELETE FROM shopping_items")
+    suspend fun clearAll()
+
+    @Query("SELECT * FROM shopping_items ORDER BY category, sortOrder, createdAt")
+    fun getAll(): Flow<List<ShoppingItem>>
+
+    @Query("SELECT * FROM shopping_items WHERE id = :id")
+    suspend fun getById(id: Long): ShoppingItem?
 }

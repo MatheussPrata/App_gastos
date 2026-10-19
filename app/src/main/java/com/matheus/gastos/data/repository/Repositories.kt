@@ -7,12 +7,14 @@ import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.BudgetLimitDao
 import com.matheus.gastos.data.dao.AppSettingsDao
+import com.matheus.gastos.data.dao.ShoppingItemDao
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.Subcategory
 import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.AppSettings
+import com.matheus.gastos.data.entity.ShoppingItem
 import com.matheus.gastos.data.entity.BudgetPeriod
 import com.matheus.gastos.data.entity.PaymentMethod
 import kotlinx.coroutines.flow.Flow
@@ -503,4 +505,46 @@ class SettingsRepository(private val dao: AppSettingsDao) {
     suspend fun getInt(key: String, default: Int): Int = dao.getValue(key)?.toIntOrNull() ?: default
     suspend fun getLong(key: String, default: Long): Long = dao.getValue(key)?.toLongOrNull() ?: default
     suspend fun getBoolean(key: String, default: Boolean): Boolean = dao.getValue(key)?.toBoolean() ?: default
+}
+
+/**
+ * Lista de compras (item 37): persistencia local e ordenacao por categoria.
+ */
+class ShoppingRepository(private val dao: ShoppingItemDao) {
+
+    fun getAll(): Flow<List<ShoppingItem>> = dao.getAll()
+
+    suspend fun insert(item: ShoppingItem): Long = dao.insert(item)
+
+    suspend fun update(item: ShoppingItem) =
+        dao.update(item.copy(updatedAt = System.currentTimeMillis()))
+
+    suspend fun delete(item: ShoppingItem) = dao.delete(item)
+
+    suspend fun deleteById(id: Long) = dao.deleteById(id)
+
+    suspend fun clearChecked() = dao.clearChecked()
+
+    suspend fun clearAll() = dao.clearAll()
+
+    suspend fun toggle(item: ShoppingItem): ShoppingItem {
+        val updated = item.copy(isChecked = !item.isChecked, updatedAt = System.currentTimeMillis())
+        dao.update(updated)
+        return updated
+    }
+
+    /** Insere um item texto rapido na categoria escolhida, no fim do grupo. */
+    suspend fun addQuick(name: String, category: String, quantity: String = "") {
+        val clean = name.trim()
+        if (clean.isEmpty()) return
+        val order = dao.getAll().firstOrNull()?.count { it.category == category } ?: 0
+        dao.insert(
+            ShoppingItem(
+                name = clean,
+                quantity = quantity.trim(),
+                category = category,
+                sortOrder = order
+            )
+        )
+    }
 }

@@ -6,6 +6,7 @@ import com.matheus.gastos.data.dao.AppSettingsDao
 import com.matheus.gastos.data.dao.BudgetLimitDao
 import com.matheus.gastos.data.dao.CategoryDao
 import com.matheus.gastos.data.dao.CreditCardDao
+import com.matheus.gastos.data.dao.ShoppingItemDao
 import com.matheus.gastos.data.dao.SubcategoryDao
 import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.data.entity.BudgetLimit
@@ -46,6 +47,10 @@ object DatabaseModule {
 
     @Provides
     fun provideAppSettingsDao(db: com.matheus.gastos.data.local.AppDatabase) = db.appSettingsDao()
+
+    @Provides
+    @Singleton
+    fun provideShoppingItemDao(db: com.matheus.gastos.data.local.AppDatabase) = db.shoppingItemDao()
 }
 
 @Module
@@ -79,5 +84,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSettingsRepository(dao: AppSettingsDao) = com.matheus.gastos.data.repository.SettingsRepository(dao)
+
+    @Provides
+    @Singleton
+    fun provideShoppingRepository(dao: ShoppingItemDao) = com.matheus.gastos.data.repository.ShoppingRepository(dao)
 }
 

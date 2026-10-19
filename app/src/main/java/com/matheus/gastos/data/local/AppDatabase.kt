@@ -11,6 +11,7 @@ import com.matheus.gastos.data.dao.AppSettingsDao
 import com.matheus.gastos.data.dao.BudgetLimitDao
 import com.matheus.gastos.data.dao.CategoryDao
 import com.matheus.gastos.data.dao.CreditCardDao
+import com.matheus.gastos.data.dao.ShoppingItemDao
 import com.matheus.gastos.data.dao.SubcategoryDao
 import com.matheus.gastos.data.dao.TransactionDao
 import com.matheus.gastos.data.entity.AppSettings
@@ -18,6 +19,7 @@ import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.BudgetPeriod
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.CreditCard
+import com.matheus.gastos.data.entity.ShoppingItem
 import com.matheus.gastos.data.entity.Subcategory
 import com.matheus.gastos.data.entity.Transaction
 
@@ -28,9 +30,10 @@ import com.matheus.gastos.data.entity.Transaction
         CreditCard::class,
         Transaction::class,
         BudgetLimit::class,
-        AppSettings::class
+        AppSettings::class,
+        ShoppingItem::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -41,6 +44,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetLimitDao(): BudgetLimitDao
     abstract fun appSettingsDao(): AppSettingsDao
+    abstract fun shoppingItemDao(): ShoppingItemDao
 
     companion object {
         @Volatile
@@ -56,6 +60,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v3 -> v4: lista de compras (tabela nova, nada existente e tocado).
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS shopping_items (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "name TEXT NOT NULL, " +
+                        "quantity TEXT NOT NULL, " +
+                        "category TEXT NOT NULL, " +
+                        "isChecked INTEGER NOT NULL, " +
+                        "sortOrder INTEGER NOT NULL, " +
+                        "createdAt INTEGER NOT NULL, " +
+                        "updatedAt INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -63,7 +86,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "gastos-db"
                 )
-                    .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

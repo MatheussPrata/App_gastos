@@ -59,11 +59,9 @@ import com.matheus.gastos.util.parseQuantityInput
 
 /** Linha editavel do comparador. Cada produto tem preco + quantidade + unidade. */
 private class ComparableItem {
-    var label by mutableStateOf("")
     var price by mutableStateOf("")
     var quantity by mutableStateOf("")
     var unit by mutableStateOf(PriceUnit.GRAM)
-    var expanded by mutableStateOf(false)
 }
 
 /**
@@ -78,15 +76,8 @@ private class ComparableItem {
 fun ComparePricesScreen(onOpenDrawer: (() -> Unit)? = null) {
     val items = remember {
         mutableStateListOf(
-            ComparableItem().apply {
-                label = "Produto A"
-                unit = PriceUnit.GRAM
-                expanded = true
-            },
-            ComparableItem().apply {
-                label = "Produto B"
-                unit = PriceUnit.GRAM
-            }
+            ComparableItem(),
+            ComparableItem()
         )
     }
 
@@ -95,7 +86,7 @@ fun ComparePricesScreen(onOpenDrawer: (() -> Unit)? = null) {
             val parsedPrice = parsePriceInput(item.price) ?: 0.0
             val parsedQty = parseQuantityInput(item.quantity) ?: 0.0
             PriceOption(
-                label = item.label.ifBlank { "Produto ${index + 1}" },
+                label = "Produto ${index + 1}",
                 price = parsedPrice,
                 quantity = parsedQty,
                 unit = item.unit
@@ -156,9 +147,7 @@ fun ComparePricesScreen(onOpenDrawer: (() -> Unit)? = null) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            items.add(ComparableItem().apply { label = "Produto ${items.size + 1}" })
-                        }
+                        .clickable { items.add(ComparableItem()) }
                         .padding(vertical = 14.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -215,11 +204,11 @@ private fun ComparableItemCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = item.label,
-                    onValueChange = { item.label = it },
-                    label = { Text("Nome (opcional)") },
-                    singleLine = true,
+                Text(
+                    text = "Produto ${index + 1}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 if (isBest) {
