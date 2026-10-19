@@ -21,8 +21,10 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Speed
@@ -33,6 +35,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -69,7 +72,9 @@ fun SettingsScreen(
     categoryViewModel: CategoryViewModel,
     creditCardViewModel: CreditCardViewModel,
     onNavigateToCategories: () -> Unit,
-    onNavigateToBudgetLimits: () -> Unit = {}
+    onNavigateToBudgetLimits: () -> Unit = {},
+    onNavigateToCards: () -> Unit = {},
+    onOpenDrawer: (() -> Unit)? = null
 ) {
     val themeMode = settingsViewModel.themeMode.observeAsState(initial = 0)
     val accentColor = settingsViewModel.accentColor.observeAsState(initial = 0xFF6750A4.toInt())
@@ -96,6 +101,13 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
+            navigationIcon = {
+                if (onOpenDrawer != null) {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Abrir menu")
+                    }
+                }
+            },
             title = { Text("Configurações", fontWeight = FontWeight.SemiBold) },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background,
@@ -134,6 +146,17 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { showColorPicker = true }
+                    )
+                }
+            }
+
+            item {
+                SettingsSection(title = "Cartões") {
+                    SettingsItem(
+                        title = "Meus Cartões",
+                        subtitle = "Gerenciar cartões, fotos e limites",
+                        icon = Icons.Filled.CreditCard,
+                        onClick = onNavigateToCards
                     )
                 }
             }

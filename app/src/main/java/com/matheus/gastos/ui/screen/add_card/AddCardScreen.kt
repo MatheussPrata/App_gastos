@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
 import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.ui.components.WalletCardView
 import com.matheus.gastos.viewmodel.CreditCardViewModel
@@ -79,12 +80,22 @@ fun AddCardDialog(
     var isActive by remember { mutableStateOf(true) }
     // Foto personalizada do cartao (estilo carteira). null = usa so a cor.
     var imageUri by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            imageUri = uri.toString()
+            // A permissao do seletor de fotos e temporaria: copiamos para o
+            // armazenamento interno do app para a imagem sobreviver a reinicios.
+            imageUri = runCatching {
+                val dir = java.io.File(context.filesDir, "card_images").apply { mkdirs() }
+                val dest = java.io.File(dir, "card_" + java.util.UUID.randomUUID() + ".jpg")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    dest.outputStream().use { output -> input.copyTo(output) }
+                }
+                dest.absolutePath
+            }.getOrNull() ?: uri.toString()
         }
     }
 

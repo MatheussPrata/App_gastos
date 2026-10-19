@@ -90,4 +90,5 @@ object BudgetLimits : Screen {
     override val icon = Icons.Filled.Speed
 }
 
-val mainScreens = listOf(Expenses, Cards, Reports, Settings)
+// "Cartões" saiu da barra inferior: agora é acessado pelo menu lateral e pelas Configurações.
+val mainScreens = listOf(Expenses, Reports, Settings)

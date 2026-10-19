@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -94,6 +95,7 @@ fun ExpensesScreen(
     creditCardViewModel: CreditCardViewModel,
     onAddExpense: () -> Unit,
     onEditExpense: (Long) -> Unit,
+    onOpenDrawer: (() -> Unit)? = null,
     budgetLimitViewModel: BudgetLimitViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val selectedMonthState = viewModel.selectedMonth.observeAsState(initial = monthStart(System.currentTimeMillis()))
@@ -173,6 +175,13 @@ fun ExpensesScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    if (onOpenDrawer != null) {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Abrir menu")
+                        }
+                    }
+                },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Gastos", fontWeight = FontWeight.SemiBold)

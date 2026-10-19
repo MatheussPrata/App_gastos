@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -99,7 +100,8 @@ fun CardsScreen(
     viewModel: CreditCardViewModel,
     transactionViewModel: TransactionViewModel,
     onAddCard: () -> Unit,
-    onEditCard: (Long) -> Unit
+    onEditCard: (Long) -> Unit,
+    onOpenDrawer: (() -> Unit)? = null
 ) {
     val cardsState = viewModel.allCards.observeAsState(initial = emptyList())
     val cards = cardsState.value
@@ -114,6 +116,13 @@ fun CardsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    if (onOpenDrawer != null) {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Abrir menu")
+                        }
+                    }
+                },
                 title = { Text("Cartões", fontWeight = FontWeight.SemiBold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,

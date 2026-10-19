@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.TrendingDown
@@ -88,7 +89,8 @@ private const val LOOP_PAGES = 3000
 fun ReportsScreen(
     transactionViewModel: TransactionViewModel,
     categoryViewModel: CategoryViewModel,
-    creditCardViewModel: CreditCardViewModel
+    creditCardViewModel: CreditCardViewModel,
+    onOpenDrawer: (() -> Unit)? = null
 ) {
     val expensesByCategory = transactionViewModel.expensesByCategory.observeAsState(initial = emptyList())
     val expensesByCard = transactionViewModel.expensesByCard.observeAsState(initial = emptyList())
@@ -145,6 +147,13 @@ fun ReportsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    if (onOpenDrawer != null) {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Abrir menu")
+                        }
+                    }
+                },
                 title = { Text("Relatórios", fontWeight = FontWeight.SemiBold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
