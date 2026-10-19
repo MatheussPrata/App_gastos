@@ -83,6 +83,7 @@ fun ShoppingListScreen(
     val focusManager = LocalFocusManager.current
 
     var newItem by remember { mutableStateOf("") }
+    var newQuantity by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.MERCEARIA) }
 
     val allItems: List<ShoppingItem> = items
@@ -98,8 +99,9 @@ fun ShoppingListScreen(
     fun addCurrent() {
         val clean = newItem.trim()
         if (clean.isEmpty()) return
-        viewModel.add(clean, selectedCategory)
+        viewModel.add(clean, selectedCategory, newQuantity)
         newItem = ""
+        newQuantity = ""
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -142,50 +144,59 @@ fun ShoppingListScreen(
             )
         )
 
-        // Campo rapido: digita o item e confirma.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        // Entrada do item: nome + quantidade (opcional) + botao adicionar.
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             OutlinedTextField(
                 value = newItem,
                 onValueChange = { newItem = it },
                 label = { Text("O que falta?") },
                 singleLine = true,
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    addCurrent()
-                    focusManager.clearFocus()
-                })
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
-            Surface(
-                onClick = {
-                    addCurrent()
-                    focusManager.clearFocus()
-                },
-                enabled = newItem.isNotBlank(),
-                shape = CircleShape,
-                color = if (newItem.isNotBlank()) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-                modifier = Modifier.size(52.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "Adicionar item",
-                        tint = if (newItem.isNotBlank()) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
+                OutlinedTextField(
+                    value = newQuantity,
+                    onValueChange = { newQuantity = it },
+                    label = { Text("Qtd.") },
+                    placeholder = { Text("ex.: 2 kg") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        addCurrent()
+                        focusManager.clearFocus()
+                    })
+                )
+                Surface(
+                    onClick = {
+                        addCurrent()
+                        focusManager.clearFocus()
+                    },
+                    enabled = newItem.isNotBlank(),
+                    shape = CircleShape,
+                    color = if (newItem.isNotBlank()) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "Adicionar item",
+                            tint = if (newItem.isNotBlank()) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
                 }
             }
         }
