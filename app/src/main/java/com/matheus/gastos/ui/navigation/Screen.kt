@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Settings
@@ -28,6 +29,13 @@ object Cards : Screen {
     override val route = "cards"
     override val title = "Cartões"
     override val icon = Icons.Filled.CreditCard
+}
+
+// Substituta do antigo slot de "Cartoes" na barra inferior.
+object Compare : Screen {
+    override val route = "compare"
+    override val title = "Comparador"
+    override val icon = Icons.Filled.CompareArrows
 }
 
 object Reports : Screen {
@@ -91,4 +99,5 @@ object BudgetLimits : Screen {
 }
 
 // "Cartões" saiu da barra inferior: agora é acessado pelo menu lateral e pelas Configurações.
-val mainScreens = listOf(Expenses, Reports, Settings)
+// O slot livre foi ocupado pelo Comparador de precos.
+val mainScreens = listOf(Expenses, Compare, Reports, Settings)

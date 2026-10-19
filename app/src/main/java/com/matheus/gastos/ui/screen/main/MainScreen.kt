@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matheus.gastos.ui.navigation.Cards
+import com.matheus.gastos.ui.navigation.Compare
 import com.matheus.gastos.ui.navigation.Expenses
 import com.matheus.gastos.ui.navigation.Reports
 import com.matheus.gastos.ui.navigation.Screen
@@ -41,6 +42,7 @@ import com.matheus.gastos.ui.navigation.Settings
 import com.matheus.gastos.ui.navigation.mainScreens
 import com.matheus.gastos.ui.screen.add_card.AddCardDialog
 import com.matheus.gastos.ui.screen.cards.CardsScreen
+import com.matheus.gastos.ui.screen.compare.ComparePricesScreen
 import com.matheus.gastos.ui.screen.expenses.ExpensesScreen
 import com.matheus.gastos.ui.screen.reports.ReportsScreen
 import com.matheus.gastos.ui.screen.settings.SettingsScreen
@@ -104,6 +106,15 @@ fun MainScreen(
                     selected = selectedScreen == Reports,
                     onClick = {
                         selectedScreen = Reports
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text(Compare.title) },
+                    icon = { Icon(Compare.icon, contentDescription = null) },
+                    selected = selectedScreen == Compare,
+                    onClick = {
+                        selectedScreen = Compare
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -212,6 +223,8 @@ fun MainScreen(
                         showCardDialog = true
                     }
                 )
+                Compare -> ComparePricesScreen(onOpenDrawer = openDrawer)
+
                 Reports -> ReportsScreen(
                     transactionViewModel = transactionViewModel,
                     onOpenDrawer = openDrawer,
