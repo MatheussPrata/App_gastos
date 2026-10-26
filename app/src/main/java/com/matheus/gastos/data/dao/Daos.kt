@@ -1,26 +1,17 @@
 package com.matheus.gastos.data.dao
 
 import androidx.room.*
-import androidx.room.RawQuery
-import androidx.sqlite.db.SimpleSQLiteQuery
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.Subcategory
 import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.data.entity.Transaction
 import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.AppSettings
+import com.matheus.gastos.data.entity.Connection
+import com.matheus.gastos.data.entity.RecurringTransaction
+import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.data.entity.ShoppingItem
-import com.matheus.gastos.data.entity.BudgetPeriod
 import kotlinx.coroutines.flow.Flow
-
-data class MonthlyBalance(
-    val month: String,
-    val expenses: Double,
-    val income: Double
-) {
-    val balance: Double
-        get() = income - expenses
-}
 
 @Dao
 interface CategoryDao {
@@ -42,9 +33,6 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY sortOrder, name")
     fun getAll(): Flow<List<Category>>
 
-    @Query("SELECT * FROM categories ORDER BY sortOrder, name")
-    suspend fun getAllOnce(): List<Category>
-
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: Long): Category?
 
@@ -53,12 +41,6 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE isDefault = 0 ORDER BY sortOrder, name")
     fun getCustom(): Flow<List<Category>>
-
-    @Query("SELECT * FROM categories WHERE isExpenseDefault = :isExpense ORDER BY sortOrder, name")
-    fun getByType(isExpense: Boolean): Flow<List<Category>>
-
-    @Query("SELECT COUNT(*) FROM categories")
-    suspend fun count(): Int
 }
 
 @Dao
@@ -111,12 +93,6 @@ interface CreditCardDao {
     @Query("SELECT * FROM credit_cards ORDER BY sortOrder, name")
     fun getAll(): Flow<List<CreditCard>>
 
-    @Query("SELECT * FROM credit_cards ORDER BY sortOrder, name")
-    suspend fun getAllOnce(): List<CreditCard>
-
-    @Query("SELECT COUNT(*) FROM credit_cards")
-    suspend fun count(): Int
-
     @Query("SELECT * FROM credit_cards WHERE id = :id")
     suspend fun getById(id: Long): CreditCard?
 }
@@ -140,9 +116,6 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE installmentGroupId = :groupId")
     suspend fun deleteByInstallmentGroup(groupId: String): Int
-
-    @Query("SELECT COUNT(*) FROM transactions")
-    suspend fun countAll(): Int
 
     @Query("SELECT * FROM transactions WHERE date >= :startDate AND date <= :endDate ORDER BY date DESC")
     fun getByDateRange(startDate: Long, endDate: Long): Flow<List<Transaction>>
@@ -171,17 +144,14 @@ interface TransactionDao {
     @Query("SELECT creditCardId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND creditCardId IS NOT NULL GROUP BY creditCardId ORDER BY total DESC")
     fun getExpensesByCard(startDate: Long, endDate: Long): Flow<List<CardExpense>>
 
-    @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND creditCardId = :cardId AND categoryId IS NOT NULL GROUP BY categoryId ORDER BY total DESC")
-    fun getExpensesByCategoryForCard(startDate: Long, endDate: Long, cardId: Long): Flow<List<CategoryExpense>>
-
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getById(id: Long): Transaction?
 
-    @Query("SELECT strftime('%Y-%m', date/1000, 'unixepoch', 'localtime') as month, SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0 END) as expenses, SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0 END) as income FROM transactions GROUP BY month ORDER BY month DESC")
-    fun getMonthlyBalances(): Flow<List<MonthlyBalance>>
+    @Query("SELECT * FROM transactions WHERE ownerId = :ownerId ORDER BY date DESC")
+    fun getByOwnerId(ownerId: String): Flow<List<Transaction>>
 
-    @Query("SELECT strftime('%Y-%m', date/1000, 'unixepoch', 'localtime') as month, SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0 END) as expenses, SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0 END) as income FROM transactions WHERE date >= :startDate AND date <= :endDate GROUP BY month ORDER BY month DESC")
-    fun getMonthlyBalancesInRange(startDate: Long, endDate: Long): Flow<List<MonthlyBalance>>
+    @Query("SELECT * FROM transactions WHERE partnerSynced = 0 ORDER BY date DESC")
+    fun getUnsynced(): Flow<List<Transaction>>
 
     @RawQuery(observedEntities = [Transaction::class])
     fun getAllTransactions(query: SimpleSQLiteQuery): Flow<List<Transaction>>
@@ -241,31 +211,73 @@ interface AppSettingsDao {
     @Query("SELECT * FROM app_settings")
     fun getAll(): Flow<List<AppSettings>>
 }
-@Dao
-interface ShoppingItemDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: ShoppingItem): Long
 
+// ==================== NEW DAOS FOR SHARING ====================
+
+@Dao
+interface ConnectionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(items: List<ShoppingItem>)
+    suspend fun insert(connection: Connection): Long
 
     @Update
-    suspend fun update(item: ShoppingItem)
+    suspend fun update(connection: Connection): Int
+
+    @Query("SELECT * FROM connections WHERE isActive = 1 LIMIT 1")
+    fun getActive(): Flow<Connection?>
+
+    @Query("SELECT * FROM connections WHERE inviteCode = :code")
+    suspend fun getByInviteCode(code: String): Connection?
+
+    @Query("DELETE FROM connections WHERE id = :id")
+    suspend fun deleteById(id: String): Int
+}
+
+@Dao
+interface RecurringTransactionDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(rt: RecurringTransaction): Long
+
+    @Update
+    suspend fun update(rt: RecurringTransaction): Int
+
+    @Delete
+    suspend fun delete(rt: RecurringTransaction)
+
+    @Query("DELETE FROM recurring_transactions WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
+
+    @Query("SELECT * FROM recurring_transactions WHERE isActive = 1 ORDER BY nextDueDate")
+    fun getActive(): Flow<List<RecurringTransaction>>
+
+    @Query("SELECT * FROM recurring_transactions WHERE ownerId = :ownerId ORDER BY createdAt DESC")
+    fun getByOwner(ownerId: String): Flow<List<RecurringTransaction>>
+
+    @Query("SELECT * FROM recurring_transactions WHERE isActive = 1 AND nextDueDate <= :now ORDER BY nextDueDate")
+    fun getDue(now: Long): Flow<List<RecurringTransaction>>
+
+    @Query("SELECT * FROM recurring_transactions WHERE id = :id")
+    suspend fun getById(id: Long): RecurringTransaction?
+}
+
+@Dao
+interface ShoppingItemDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(item: ShoppingItem): Long
+
+    @Update
+    suspend fun update(item: ShoppingItem): Int
 
     @Delete
     suspend fun delete(item: ShoppingItem)
 
     @Query("DELETE FROM shopping_items WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    suspend fun deleteById(id: Long): Int
 
-    @Query("DELETE FROM shopping_items WHERE isChecked = 1")
-    suspend fun clearChecked()
-
-    @Query("DELETE FROM shopping_items")
-    suspend fun clearAll()
-
-    @Query("SELECT * FROM shopping_items ORDER BY category, sortOrder, createdAt")
+    @Query("SELECT * FROM shopping_items ORDER BY isChecked ASC, createdAt DESC")
     fun getAll(): Flow<List<ShoppingItem>>
+
+    @Query("SELECT * FROM shopping_items WHERE ownerId = :ownerId ORDER BY isChecked ASC, createdAt DESC")
+    fun getByOwner(ownerId: String): Flow<List<ShoppingItem>>
 
     @Query("SELECT * FROM shopping_items WHERE id = :id")
     suspend fun getById(id: Long): ShoppingItem?

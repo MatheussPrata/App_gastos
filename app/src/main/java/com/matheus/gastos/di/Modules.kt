@@ -2,91 +2,117 @@ package com.matheus.gastos.di
 
 import android.content.Context
 import androidx.room.Room
-import com.matheus.gastos.data.dao.AppSettingsDao
-import com.matheus.gastos.data.dao.BudgetLimitDao
-import com.matheus.gastos.data.dao.CategoryDao
-import com.matheus.gastos.data.dao.CreditCardDao
-import com.matheus.gastos.data.dao.ShoppingItemDao
-import com.matheus.gastos.data.dao.SubcategoryDao
-import com.matheus.gastos.data.dao.TransactionDao
-import com.matheus.gastos.data.entity.BudgetLimit
-import com.matheus.gastos.data.local.Converters
+import com.matheus.gastos.data.local.AppDatabase
+import com.matheus.gastos.data.dao.*
+import com.matheus.gastos.data.repository.*
+import com.matheus.gastos.data.backup.DriveBackupManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context) = Room.databaseBuilder(
-        context.applicationContext,
-        com.matheus.gastos.data.local.AppDatabase::class.java,
-        "gastos-db"
-    ).fallbackToDestructiveMigration().build()
+    fun provideDatabase(@dagger.hilt.android.qualifiers.ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "gastos.db"
+        ).fallbackToDestructiveMigration().build()
+    }
+}
 
+@Module
+@InstallIn(SingletonComponent::class)
+object DaoModule {
     @Provides
-    fun provideCategoryDao(db: com.matheus.gastos.data.local.AppDatabase) = db.categoryDao()
-
+    fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
+    
     @Provides
-    fun provideSubcategoryDao(db: com.matheus.gastos.data.local.AppDatabase) = db.subcategoryDao()
-
+    fun provideSubcategoryDao(db: AppDatabase): SubcategoryDao = db.subcategoryDao()
+    
     @Provides
-    fun provideCreditCardDao(db: com.matheus.gastos.data.local.AppDatabase) = db.creditCardDao()
-
+    fun provideCreditCardDao(db: AppDatabase): CreditCardDao = db.creditCardDao()
+    
     @Provides
-    fun provideTransactionDao(db: com.matheus.gastos.data.local.AppDatabase) = db.transactionDao()
-
+    fun provideTransactionDao(db: AppDatabase): TransactionDao = db.transactionDao()
+    
     @Provides
-    fun provideBudgetLimitDao(db: com.matheus.gastos.data.local.AppDatabase) = db.budgetLimitDao()
-
+    fun provideBudgetLimitDao(db: AppDatabase): BudgetLimitDao = db.budgetLimitDao()
+    
     @Provides
-    fun provideAppSettingsDao(db: com.matheus.gastos.data.local.AppDatabase) = db.appSettingsDao()
-
+    fun provideAppSettingsDao(db: AppDatabase): AppSettingsDao = db.appSettingsDao()
+    
+    // NEW DAOs for sharing
     @Provides
-    @Singleton
-    fun provideShoppingItemDao(db: com.matheus.gastos.data.local.AppDatabase) = db.shoppingItemDao()
+    fun provideConnectionDao(db: AppDatabase): ConnectionDao = db.connectionDao()
+    
+    @Provides
+    fun provideRecurringTransactionDao(db: AppDatabase): RecurringTransactionDao = db.recurringTransactionDao()
+    
+    @Provides
+    fun provideShoppingItemDao(db: AppDatabase): ShoppingItemDao = db.shoppingItemDao()
 }
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+    @Provides
+    @Singleton
+    fun provideCategoryRepository(
+        categoryDao: CategoryDao,
+        subcategoryDao: SubcategoryDao
+    ): CategoryRepository = CategoryRepository(categoryDao, subcategoryDao)
 
     @Provides
     @Singleton
-    fun provideCategoryRepository(dao: CategoryDao) = com.matheus.gastos.data.repository.CategoryRepository(dao)
+    fun provideCreditCardRepository(creditCardDao: CreditCardDao): CreditCardRepository = CreditCardRepository(creditCardDao)
 
     @Provides
     @Singleton
-    fun provideSubcategoryRepository(dao: SubcategoryDao) = com.matheus.gastos.data.repository.SubcategoryRepository(dao)
-
-    @Provides
-    @Singleton
-    fun provideCreditCardRepository(dao: CreditCardDao) = com.matheus.gastos.data.repository.CreditCardRepository(dao)
-
-    @Provides
-    @Singleton
-    fun provideTransactionRepository(dao: TransactionDao) = com.matheus.gastos.data.repository.TransactionRepository(dao)
+    fun provideTransactionRepository(transactionDao: TransactionDao): TransactionRepository = TransactionRepository(transactionDao)
 
     @Provides
     @Singleton
     fun provideBudgetLimitRepository(
-        dao: BudgetLimitDao,
-        categoryDao: CategoryDao,
-        transactionDao: TransactionDao
-    ) = com.matheus.gastos.data.repository.BudgetLimitRepository(dao, categoryDao, transactionDao)
+        budgetLimitDao: BudgetLimitDao,
+        categoryRepository: CategoryRepository
+    ): BudgetLimitRepository = BudgetLimitRepository(budgetLimitDao, categoryRepository)
 
     @Provides
     @Singleton
-    fun provideSettingsRepository(dao: AppSettingsDao) = com.matheus.gastos.data.repository.SettingsRepository(dao)
+    fun provideSettingsRepository(appSettingsDao: AppSettingsDao): SettingsRepository = SettingsRepository(appSettingsDao)
 
     @Provides
     @Singleton
-    fun provideShoppingRepository(dao: ShoppingItemDao) = com.matheus.gastos.data.repository.ShoppingRepository(dao)
+    fun provideDriveBackupManager(@dagger.hilt.android.qualifiers.ApplicationContext context: Context): DriveBackupManager = DriveBackupManager(context)
+
+    // NEW Repositories for sharing
+    @Provides
+    @Singleton
+    fun provideConnectionRepository(
+        connectionDao: ConnectionDao,
+        settingsRepository: SettingsRepository
+    ): ConnectionRepository = ConnectionRepository(connectionDao, settingsRepository)
+
+    @Provides
+    @Singleton
+    fun provideRecurringTransactionRepository(
+        recurringTransactionDao: RecurringTransactionDao,
+        transactionRepository: TransactionRepository,
+        settingsRepository: SettingsRepository
+    ): RecurringTransactionRepository = RecurringTransactionRepository(
+        recurringTransactionDao, transactionRepository, settingsRepository
+    )
+
+    @Provides
+    @Singleton
+    fun provideShoppingRepository(
+        shoppingItemDao: ShoppingItemDao,
+        settingsRepository: SettingsRepository
+    ): ShoppingRepository = ShoppingRepository(shoppingItemDao, settingsRepository)
 }
-

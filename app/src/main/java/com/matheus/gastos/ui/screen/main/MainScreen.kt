@@ -26,6 +26,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -47,8 +51,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matheus.gastos.ui.navigation.Cards
 import com.matheus.gastos.ui.navigation.Compare
+import com.matheus.gastos.ui.navigation.Connection
 import com.matheus.gastos.ui.navigation.Expenses
 import com.matheus.gastos.ui.navigation.Reports
+import com.matheus.gastos.ui.navigation.RecurringTransactions
 import com.matheus.gastos.ui.navigation.Screen
 import com.matheus.gastos.ui.navigation.Settings
 import com.matheus.gastos.ui.navigation.Shopping
@@ -56,13 +62,18 @@ import com.matheus.gastos.ui.navigation.mainScreens
 import com.matheus.gastos.ui.screen.add_card.AddCardDialog
 import com.matheus.gastos.ui.screen.cards.CardsScreen
 import com.matheus.gastos.ui.screen.compare.ComparePricesScreen
-import com.matheus.gastos.ui.screen.shopping.ShoppingListScreen
+import com.matheus.gastos.ui.screen.connection.ConnectionScreen
 import com.matheus.gastos.ui.screen.expenses.ExpensesScreen
+import com.matheus.gastos.ui.screen.recurring.RecurringTransactionsScreen
 import com.matheus.gastos.ui.screen.reports.ReportsScreen
 import com.matheus.gastos.ui.screen.settings.SettingsScreen
+import com.matheus.gastos.ui.screen.shopping.ShoppingScreen
 import com.matheus.gastos.viewmodel.CategoryViewModel
+import com.matheus.gastos.viewmodel.ConnectionViewModel
 import com.matheus.gastos.viewmodel.CreditCardViewModel
+import com.matheus.gastos.viewmodel.RecurringTransactionViewModel
 import com.matheus.gastos.viewmodel.SettingsViewModel
+import com.matheus.gastos.viewmodel.ShoppingViewModel
 import com.matheus.gastos.viewmodel.TransactionViewModel
 import kotlinx.coroutines.launch
 
@@ -79,6 +90,9 @@ fun MainScreen(
     val categoryViewModel: CategoryViewModel = hiltViewModel()
     val creditCardViewModel: CreditCardViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val connectionViewModel: ConnectionViewModel = hiltViewModel()
+    val recurringTransactionViewModel: RecurringTransactionViewModel = hiltViewModel()
+    val shoppingViewModel: ShoppingViewModel = hiltViewModel()
 
     var selectedScreen by remember(currentScreen) { mutableStateOf(currentScreen) }
 
@@ -124,11 +138,29 @@ fun MainScreen(
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(Compare.title) },
+                    label = { Text("Comparar Preços") },
                     icon = { Icon(Compare.icon, contentDescription = null) },
                     selected = selectedScreen == Compare,
                     onClick = {
                         selectedScreen = Compare
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Conexão") },
+                    icon = { Icon(Connection.icon, contentDescription = null) },
+                    selected = selectedScreen == Connection,
+                    onClick = {
+                        selectedScreen = Connection
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Recorrentes") },
+                    icon = { Icon(RecurringTransactions.icon, contentDescription = null) },
+                    selected = selectedScreen == RecurringTransactions,
+                    onClick = {
+                        selectedScreen = RecurringTransactions
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -141,7 +173,6 @@ fun MainScreen(
                         scope.launch { drawerState.close() }
                     }
                 )
-                // "Cartões" saiu da navbar: agora vive aqui e nas Configurações.
                 NavigationDrawerItem(
                     label = { Text(Cards.title) },
                     icon = { Icon(Cards.icon, contentDescription = null) },
@@ -187,15 +218,12 @@ fun MainScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            // Sem Configuracoes na barra: ela vive no menu lateral.
-            // 4 abas + botao central (+).
+            // 5 abas + botao central (+).
             Box {
                 NavigationBar(
-                    // surfaceContainer e derivado da cor de destaque em Theme.kt,
-                    // entao a barra acompanha a troca de tema.
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 ) {
-                    val tabs = listOf(Expenses, Compare, Shopping, Reports)
+                    val tabs = listOf(Expenses, Connection, RecurringTransactions, Shopping, Reports)
                     val left = tabs.take(tabs.size / 2)
                     val right = tabs.drop(tabs.size / 2)
 
@@ -252,6 +280,37 @@ fun MainScreen(
                     onAddExpense = onNavigateToAddExpense,
                     onEditExpense = onNavigateToEditExpense
                 )
+                Compare -> ComparePricesScreen(onOpenDrawer = openDrawer)
+                Connection -> ConnectionScreen(
+                    connectionViewModel = connectionViewModel,
+                    settingsViewModel = settingsViewModel,
+                    onNavigateBack = { /* stay */ }
+                )
+                RecurringTransactions -> RecurringTransactionsScreen(
+                    recurringTransactionViewModel = recurringTransactionViewModel,
+                    categoryViewModel = categoryViewModel,
+                    onNavigateBack = { /* stay */ }
+                )
+                Shopping -> ShoppingScreen(
+                    shoppingViewModel = shoppingViewModel,
+                    settingsViewModel = settingsViewModel,
+                    onNavigateBack = { /* stay */ }
+                )
+                Reports -> ReportsScreen(
+                    transactionViewModel = transactionViewModel,
+                    onOpenDrawer = openDrawer,
+                    categoryViewModel = categoryViewModel,
+                    creditCardViewModel = creditCardViewModel
+                )
+                Settings -> SettingsScreen(
+                    settingsViewModel = settingsViewModel,
+                    onOpenDrawer = openDrawer,
+                    onNavigateToCards = { /* handled by drawer */ },
+                    categoryViewModel = categoryViewModel,
+                    creditCardViewModel = creditCardViewModel,
+                    onNavigateToCategories = onNavigateToCategories,
+                    onNavigateToBudgetLimits = onNavigateToBudgetLimits
+                )
                 Cards -> CardsScreen(
                     viewModel = creditCardViewModel,
                     onOpenDrawer = openDrawer,
@@ -264,25 +323,6 @@ fun MainScreen(
                         editingCardId = id
                         showCardDialog = true
                     }
-                )
-                Compare -> ComparePricesScreen(onOpenDrawer = openDrawer)
-
-                Shopping -> ShoppingListScreen(onOpenDrawer = openDrawer)
-
-                Reports -> ReportsScreen(
-                    transactionViewModel = transactionViewModel,
-                    onOpenDrawer = openDrawer,
-                    categoryViewModel = categoryViewModel,
-                    creditCardViewModel = creditCardViewModel
-                )
-                Settings -> SettingsScreen(
-                    settingsViewModel = settingsViewModel,
-                    onOpenDrawer = openDrawer,
-                    onNavigateToCards = { selectedScreen = Cards },
-                    categoryViewModel = categoryViewModel,
-                    creditCardViewModel = creditCardViewModel,
-                    onNavigateToCategories = onNavigateToCategories,
-                    onNavigateToBudgetLimits = onNavigateToBudgetLimits
                 )
                 else -> {}
             }
