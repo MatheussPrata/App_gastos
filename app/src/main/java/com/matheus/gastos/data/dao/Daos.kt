@@ -11,9 +11,6 @@ import com.matheus.gastos.data.entity.Connection
 import com.matheus.gastos.data.entity.RecurringTransaction
 import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.data.entity.ShoppingItem
-import com.matheus.gastos.data.entity.CategoryExpense
-import com.matheus.gastos.data.entity.CardExpense
-import com.matheus.gastos.data.entity.BudgetLimitWithCategory
 import kotlinx.coroutines.flow.Flow
 
 // Top-level data classes for Room query results
@@ -198,6 +195,9 @@ interface BudgetLimitDao {
 
     @Query("SELECT * FROM budget_limits WHERE isActive = 1")
     fun getActive(): Flow<List<BudgetLimit>>
+
+    @Query("SELECT * FROM budget_limits WHERE isActive = 1")
+    fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategory>>
 
     @Query("SELECT * FROM budget_limits WHERE categoryId = :categoryId AND isActive = 1")
     fun getByCategory(categoryId: Long): Flow<List<BudgetLimit>>
