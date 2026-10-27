@@ -129,7 +129,7 @@ enum class PaymentMethod(@Serializable(with = PaymentMethodSerializer::class) va
     PIX("pix"),
     DEBITO("debito"),
     BOLETO("boleto"),
-    TRANSFERENCIA("transferencia")
+    TRANSFERENCIA("transferencia");
 
     val label: String
         get() = when (this) {
