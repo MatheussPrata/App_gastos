@@ -21,8 +21,12 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.ButtonSegment
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -37,22 +41,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.NumberVisualTransformation
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Clear
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.matheus.gastos.R
 import com.matheus.gastos.data.entity.RecurringTransaction
 import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.viewmodel.RecurringTransactionViewModel
 import com.matheus.gastos.viewmodel.CategoryViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
 fun RecurringTransactionsScreen(
-    recurringTransactionViewModel: RecurringTransactionViewModel,
-    categoryViewModel: CategoryViewModel,
+    recurringTransactionViewModel: RecurringTransactionViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
     val transactions by recurringTransactionViewModel.recurringTransactions.collectAsStateWithLifecycle()
@@ -82,7 +103,7 @@ fun RecurringTransactionsScreen(
             navigationIcon = {
                 androidx.compose.material3.IconButton(onClick = { onNavigateBack() }) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.filled.Icons.Default.ArrowBack,
+                        imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Voltar"
                     )
                 }
@@ -94,7 +115,7 @@ fun RecurringTransactionsScreen(
                     showAddDialog = true
                 }) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.filled.Icons.Default.Add,
+                        imageVector = Icons.Default.Add,
                         contentDescription = "Adicionar"
                     )
                 }
@@ -116,7 +137,7 @@ fun RecurringTransactionsScreen(
                     .fillMaxSize()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp, 0.dp, 0.dp, 100.dp)
+                contentPadding = PaddingValues(0.dp, 0.dp, 0.dp, 100.dp)
             ) {
                 items(transactions) { transaction ->
                     RecurringTransactionItem(
@@ -182,7 +203,7 @@ fun RecurringTransactionsScreen(
 
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { showDeleteDialog = false; transactionToDelete = null },
             title = { Text("Excluir transação recorrente?") },
             text = {
@@ -221,7 +242,7 @@ fun EmptyRecurringState(onAddClick: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = androidx.compose.material.icons.filled.Icons.Default.Repeat,
+                imageVector = Icons.Default.Repeat,
                 contentDescription = "Sem recorrentes",
                 modifier = Modifier.size(72.dp),
                 tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -236,12 +257,12 @@ fun EmptyRecurringState(onAddClick: () -> Unit) {
                 textAlign = androidx.compose.ui.text.TextAlign.Center,
                 color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
             )
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             androidx.compose.material3.FilledButton(
                 onClick = onAddClick
             ) {
-                Icon(imageVector = androidx.compose.material.icons.filled.Icons.Default.Add, contentDescription = "Adicionar")
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar")
+                Spacer(modifier = Modifier.width(8.dp))
                 Text("Adicionar Recorrente")
             }
         }
@@ -267,10 +288,10 @@ fun RecurringTransactionItem(
             containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
-        androidx.compose.material3.ListItem(
+        ListItem(
             modifier = Modifier.fillMaxWidth(),
             headlineContent = {
-                Row(
+                androidx.compose.foundation.layout.Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -287,7 +308,7 @@ fun RecurringTransactionItem(
                         fontWeight = FontWeight.Bold,
                         color = color
                     )
-                )
+                }
             },
             supportingContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -301,7 +322,7 @@ fun RecurringTransactionItem(
                 }
             },
             leadingContent = {
-                androidx.compose.foundation.layout.Box(
+                Box(
                     modifier = Modifier
                         .size(40.dp)
                         .background(color.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
@@ -310,9 +331,9 @@ fun RecurringTransactionItem(
                 ) {
                     Icon(
                         imageVector = if (transaction.type == "income")
-                            androidx.compose.material.icons.filled.Icons.Default.ArrowUpward
+                            Icons.Default.ArrowUpward
                         else
-                            androidx.compose.material.icons.filled.Icons.Default.ArrowDownward,
+                            Icons.Default.ArrowDownward,
                         contentDescription = if (transaction.type == "income") "Receita" else "Despesa",
                         tint = color,
                         modifier = Modifier.size(24.dp)
@@ -324,10 +345,10 @@ fun RecurringTransactionItem(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    androidx.compose.material3.Switch(
+                    Switch(
                         checked = transaction.isActive,
                         onCheckedChange = { _ -> onToggleActive() },
-                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                        colors = SwitchDefaults.colors(
                             checkedThumbColor = color,
                             checkedTrackColor = color.copy(alpha = 0.3f)
                         )
@@ -337,13 +358,13 @@ fun RecurringTransactionItem(
                     ) {
                         IconButton(onClick = onEdit) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.filled.Icons.Default.Edit,
+                                imageVector = Icons.Default.Edit,
                                 contentDescription = "Editar"
                             )
                         }
                         IconButton(onClick = onDelete) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.filled.Icons.Default.Delete,
+                                imageVector = Icons.Default.Delete,
                                 contentDescription = "Excluir",
                                 tint = Color.Red
                             )
@@ -381,7 +402,7 @@ fun RecurringTransactionDialog(
     onSave: () -> Unit,
     onCancel: () -> Unit
 ) {
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onCancel,
         title = { Text(if (isEditing) "Editar Recorrente" else "Nova Transação Recorrente") },
         text = {
@@ -390,34 +411,38 @@ fun RecurringTransactionDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Type Selector
-                androidx.compose.material3.SegmentedButton(
+                SegmentedButton(
                     selected = { type },
                     onSelectionChange = { newSelection ->
                         onTypeChange(newSelection.first())
                     }
                 ) {
-                    androidx.compose.material3.ButtonSegment(
+                    ButtonSegment(
                         onClick = { onTypeChange("expense") },
-                        label = { Row(verticalArrangement = Arrangement.Center) {
-                            Icon(imageVector = androidx.compose.material.icons.filled.Icons.Default.ArrowDownward, contentDescription = "")
-                            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.foundation.layout.Modifier.width(8.dp))
-                            Text("Despesa")
-                        }},
+                        label = { 
+                            Row(verticalArrangement = Arrangement.Center) {
+                                Icon(imageVector = Icons.Default.ArrowDownward, contentDescription = "")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Despesa")
+                            }
+                        },
                         selected = type == "expense"
                     )
-                    androidx.compose.material3.ButtonSegment(
+                    ButtonSegment(
                         onClick = { onTypeChange("income") },
-                        label = { Row(verticalArrangement = Arrangement.Center) {
-                            Icon(imageVector = androidx.compose.material.icons.filled.Icons.Default.ArrowUpward, contentDescription = "")
-                            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.foundation.layout.Modifier.width(8.dp))
-                            Text("Receita")
-                        }},
+                        label = { 
+                            Row(verticalArrangement = Arrangement.Center) {
+                                Icon(imageVector = Icons.Default.ArrowUpward, contentDescription = "")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Receita")
+                            }
+                        },
                         selected = type == "income"
                     )
                 }
 
                 // Description
-                androidx.compose.material3.TextField(
+                TextField(
                     value = description,
                     onValueChange = onDescriptionChange,
                     label = { Text("Descrição") },
@@ -429,7 +454,7 @@ fun RecurringTransactionDialog(
                 )
 
                 // Amount
-                androidx.compose.material3.TextField(
+                TextField(
                     value = amount,
                     onValueChange = onAmountChange,
                     label = { Text("Valor") },
@@ -439,43 +464,31 @@ fun RecurringTransactionDialog(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                         imeAction = androidx.compose.ui.text.input.ImeAction.Next
                     ),
-                    visualTransformation = androidx.compose.material3.NumberVisualTransformation(),
-                    keyboardActions = androidx.compose.ui.text.input.KeyboardActions(onNext = { /* focus next */ })
+                    visualTransformation = NumberVisualTransformation()
                 )
 
-                // Category
-                androidx.compose.material3.ExposedDropdownMenuBox(
-                    expanded = false, // simplified
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    androidx.compose.material3.TextField(
-                        value = categories.find { it.id == categoryId }?.name ?: "",
-                        onValueChange = {},
-                        label = { Text("Categoria") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { Icon(imageVector = androidx.compose.material.icons.filled.Icons.Default.ExpandMore, contentDescription = "") }
-                    )
-                    // Dropdown menu would go here - simplified for now
-                }
+                // Category (simplified)
+                TextField(
+                    value = categories.find { it.id == categoryId }?.name ?: "",
+                    onValueChange = {},
+                    label = { Text("Categoria") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(imageVector = Icons.Default.ExpandMore, contentDescription = "") }
+                )
 
-                // Frequency
-                androidx.compose.material3.ExposedDropdownMenuBox(
-                    expanded = false,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    androidx.compose.material3.TextField(
-                        value = formatFrequency(frequency, 1),
-                        onValueChange = {},
-                        label = { Text("Frequência") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { Icon(imageVector = androidx.compose.material.icons.filled.Icons.Default.ExpandMore, contentDescription = "") }
-                    )
-                }
+                // Frequency (simplified)
+                TextField(
+                    value = formatFrequency(frequency, 1),
+                    onValueChange = {},
+                    label = { Text("Frequência") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(imageVector = Icons.Default.ExpandMore, contentDescription = "") }
+                )
 
                 // Day of Month
-                androidx.compose.material3.TextField(
+                TextField(
                     value = dayOfMonth.toString(),
                     onValueChange = { v -> onDayOfMonthChange(v.toIntOrNull() ?: 1) },
                     label = { Text("Dia do mês/semana") },
@@ -485,24 +498,24 @@ fun RecurringTransactionDialog(
                 )
 
                 // Start Date
-                androidx.compose.material3.TextField(
+                TextField(
                     value = formatDate(startDate),
                     onValueChange = {},
                     label = { Text("Data de início") },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(imageVector = androidx.compose.material.icons.filled.Icons.Default.CalendarMonth, contentDescription = "") }
+                    trailingIcon = { Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = "") }
                 )
 
                 // End Date (optional)
-                androidx.compose.material3.TextField(
+                TextField(
                     value = endDate?.let { formatDate(it) } ?: "Sem data de fim",
                     onValueChange = {},
                     label = { Text("Data de fim (opcional)") },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { 
-                        Icon(imageVector = if (endDate != null) androidx.compose.material.icons.filled.Icons.Default.Clear else androidx.compose.material.icons.filled.Icons.Default.CalendarMonth, contentDescription = "")
+                        Icon(imageVector = if (endDate != null) Icons.Default.Clear else Icons.Default.CalendarMonth, contentDescription = "")
                     }
                 )
 
@@ -512,7 +525,7 @@ fun RecurringTransactionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Ativo")
-                    androidx.compose.material3.Switch(
+                    Switch(
                         checked = true,
                         onCheckedChange = { /* onIsActiveChange */ }
                     )
@@ -521,7 +534,7 @@ fun RecurringTransactionDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { /* onSave */ },
+                onClick = { onSave() },
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (isEditing) "Salvar" else "Adicionar") }
         },
