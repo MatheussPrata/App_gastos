@@ -13,6 +13,25 @@ import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.data.entity.ShoppingItem
 import kotlinx.coroutines.flow.Flow
 
+// Top-level data classes for Room query results
+data class CategoryExpense(
+    val categoryId: Long,
+    val total: Double
+)
+
+data class CardExpense(
+    val creditCardId: Long,
+    val total: Double
+)
+
+data class BudgetLimitWithCategory(
+    @Embedded val budgetLimit: BudgetLimit,
+    @Relation(
+        parentColumn = "categoryId",
+        entityColumn = "id"
+    ) val category: Category
+)
+
 @Dao
 interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -155,16 +174,6 @@ interface TransactionDao {
 
     @RawQuery(observedEntities = [Transaction::class])
     fun getAllTransactions(query: SimpleSQLiteQuery): Flow<List<Transaction>>
-
-    data class CategoryExpense(
-        val categoryId: Long,
-        val total: Double
-    )
-
-    data class CardExpense(
-        val creditCardId: Long,
-        val total: Double
-    )
 }
 
 @Dao
@@ -186,6 +195,9 @@ interface BudgetLimitDao {
 
     @Query("SELECT * FROM budget_limits WHERE isActive = 1")
     fun getActive(): Flow<List<BudgetLimit>>
+
+    @Query("SELECT * FROM budget_limits WHERE isActive = 1")
+    fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategory>>
 
     @Query("SELECT * FROM budget_limits WHERE categoryId = :categoryId AND isActive = 1")
     fun getByCategory(categoryId: Long): Flow<List<BudgetLimit>>

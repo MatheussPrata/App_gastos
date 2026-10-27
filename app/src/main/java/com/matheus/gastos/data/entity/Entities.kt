@@ -90,6 +90,7 @@ data class Transaction(
     val categoryId: Long?,
     val subcategoryId: Long?,
     val creditCardId: Long?,
+    val paymentMethod: PaymentMethod = PaymentMethod.DINHEIRO,
     val isExpense: Boolean = true, // true = expense, false = income
     val isInstallment: Boolean = false,
     val installmentNumber: Int = 1, // 1-based
@@ -121,6 +122,37 @@ data class AppSettings(
     @PrimaryKey val key: String,
     val value: String
 )
+
+enum class PaymentMethod(@Serializable(with = PaymentMethodSerializer::class) val value: String) {
+    DINHEIRO("dinheiro"),
+    CARTAO("cartao"),
+    PIX("pix"),
+    DEBITO("debito"),
+    BOLETO("boleto"),
+    TRANSFERENCIA("transferencia")
+
+    val label: String
+        get() = when (this) {
+            DINHEIRO -> "Dinheiro"
+            CARTAO -> "Cartão"
+            PIX -> "Pix"
+            DEBITO -> "Débito"
+            BOLETO -> "Boleto"
+            TRANSFERENCIA -> "Transferência"
+        }
+}
+
+class PaymentMethodSerializer : kotlinx.serialization.KSerializer<PaymentMethod> {
+    override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor("PaymentMethod", kotlinx.serialization.descriptors.PrimitiveKind.STRING)
+
+    override fun serialize(encoder: kotlinx.serialization.Encoding, value: PaymentMethod) {
+        encoder.encodeString(value.value)
+    }
+
+    override fun deserialize(decoder: kotlinx.serialization.Decoding): PaymentMethod {
+        return PaymentMethod.valueOf(decoder.decodeString().uppercase())
+    }
+}
 
 enum class BudgetPeriod(@Serializable(with = BudgetPeriodSerializer::class) val value: String) {
     WEEKLY("weekly"),
