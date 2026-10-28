@@ -13,6 +13,7 @@ data class Category(
     val color: Int, // ARGB color int
     val icon: String, // Material icon name
     val isDefault: Boolean = false,
+    val isExpenseDefault: Boolean = true,
     val sortOrder: Int = 0
 )
 
@@ -42,9 +43,11 @@ data class CreditCard(
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val name: String,
     val color: Int, // ARGB color int
-    val limit: Double,
-    val closingDay: Int, // 1-28
-    val dueDay: Int, // 1-28
+    val lastFourDigits: String = "",
+    val brand: String = "",
+    val limitAmount: Double = 0.0,
+    val closingDay: Int = 1, // 1-28
+    val dueDay: Int = 1, // 1-28
     val isActive: Boolean = true,
     val sortOrder: Int = 0
 )

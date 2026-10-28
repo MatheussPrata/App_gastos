@@ -54,6 +54,13 @@ jobs:
         retention-days: 3
         if-no-files-found: ignore
 
+    - name: Show full build log on failure
+      if: failure()
+      run: |
+        echo "===== FULL BUILD LOG ====="
+        cat build-debug.log
+        echo "===== END BUILD LOG ====="
+
     - name: Run unit tests
       run: ./gradlew testDebugUnitTest --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m"
 
