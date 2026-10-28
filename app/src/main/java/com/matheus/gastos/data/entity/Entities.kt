@@ -2,6 +2,8 @@ package com.matheus.gastos.data.entity
 
 import androidx.room.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Encoding
+import kotlinx.serialization.Decoding
 
 @Entity(tableName = "categories")
 @Serializable

@@ -14,10 +14,28 @@ import com.matheus.gastos.data.entity.Connection
 import com.matheus.gastos.data.entity.RecurringTransaction
 import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.data.entity.ShoppingItem
-import com.matheus.gastos.data.dao.CategoryExpense
-import com.matheus.gastos.data.dao.CardExpense
-import com.matheus.gastos.data.dao.BudgetLimitWithCategory
 import kotlinx.coroutines.flow.Flow
+
+// Query result classes for Room queries
+// MUST be at TOP of file (before DAOs) for KSP visibility in same compilation unit
+
+data class CategoryExpense(
+    val categoryId: Long,
+    val total: Double
+)
+
+data class CardExpense(
+    val creditCardId: Long,
+    val total: Double
+)
+
+data class BudgetLimitWithCategory(
+    @Embedded val budgetLimit: BudgetLimit,
+    @Relation(
+        parentColumn = "categoryId",
+        entityColumn = "id"
+    ) val category: Category
+)
 
 @Dao
 interface CategoryDao {
