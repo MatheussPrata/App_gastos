@@ -139,19 +139,12 @@ dependencies {
     // Google Play Services Auth
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
-    // Google Drive API
-    implementation("com.google.api-client:google-api-client-android:1.32.1")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20221107-2.0.0")
-    implementation("com.google.http-client:google-http-client-gson:1.42.2")
+    // Google Drive API (using BOM for version alignment)
+    implementation(platform("com.google.api-client:google-api-client-bom:2.5.0"))
+    implementation("com.google.api-client:google-api-client-android")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240513-2.0.0")
+    implementation("com.google.http-client:google-http-client-gson")
 
-    // Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
-
-    // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
-
-    // Gson
-    implementation("com.google.code.gson:gson:2.10.1")
 
     // Coil
     implementation("io.coil-kt:coil-compose:2.4.0")
