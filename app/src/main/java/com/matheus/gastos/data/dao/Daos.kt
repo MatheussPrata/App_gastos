@@ -97,28 +97,6 @@ interface CreditCardDao {
     suspend fun getById(id: Long): CreditCard?
 }
 
-// ============================================================================
-// Query Result Classes - MUST be in same file as TransactionDao for KSP visibility
-// ============================================================================
-
-data class CategoryExpense(
-    val categoryId: Long,
-    val total: Double
-)
-
-data class CardExpense(
-    val creditCardId: Long,
-    val total: Double
-)
-
-data class BudgetLimitWithCategory(
-    @Embedded val budgetLimit: BudgetLimit,
-    @Relation(
-        parentColumn = "categoryId",
-        entityColumn = "id"
-    ) val category: Category
-)
-
 @Dao
 interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
