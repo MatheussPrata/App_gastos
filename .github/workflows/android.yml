@@ -43,7 +43,7 @@ jobs:
         GASTOS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         set -o pipefail
-        ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m" 2>&1 | tee build-debug.log
+        ./gradlew assembleDebug --no-daemon --info -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m" 2>&1 | tee build-debug.log
 
     - name: Upload build log
       if: always()
@@ -70,7 +70,7 @@ jobs:
       if: failure()
       run: |
         echo "===== ERROS DE COMPILACAO ====="
-        ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m" 2>&1 \
+        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvm.options="-Xmx768m" 2>&1 \
           | grep -E "^e: |error:|Unresolved|Cannot|none of the following" | head -100 || true
 
     - name: Upload Debug APK
