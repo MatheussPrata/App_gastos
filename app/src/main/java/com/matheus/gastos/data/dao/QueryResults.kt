@@ -1,10 +1,12 @@
-package com.matheus.gastos.data.entity
+package com.matheus.gastos.data.dao
 
 import androidx.room.Embedded
 import androidx.room.Relation
+import com.matheus.gastos.data.entity.BudgetLimit
+import com.matheus.gastos.data.entity.Category
 
-// Query result classes for Room raw queries
-// Plain data classes for query results
+// Query result classes for Room queries
+// In same package as DAOs for KSP visibility
 
 data class CategoryExpense(
     val categoryId: Long,
