@@ -37,6 +37,13 @@ data class BudgetLimitWithCategory(
     ) val category: Category
 )
 
+data class MonthlyBalance(
+    val month: Long,
+    val income: Double,
+    val expense: Double,
+    val balance: Double
+)
+
 @Dao
 interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -57,6 +64,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY sortOrder, name")
     fun getAll(): Flow<List<Category>>
 
+    @Query("SELECT * FROM categories ORDER BY sortOrder, name")
+    suspend fun getAllOnce(): List<Category>
+
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: Long): Category?
 
@@ -65,6 +75,12 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE isDefault = 0 ORDER BY sortOrder, name")
     fun getCustom(): Flow<List<Category>>
+
+    @Query("SELECT * FROM categories WHERE isExpenseDefault = :isExpense ORDER BY sortOrder, name")
+    fun getByType(isExpense: Boolean): Flow<List<Category>>
+
+    @Query("SELECT COUNT(*) FROM categories")
+    suspend fun count(): Int
 }
 
 @Dao
@@ -165,6 +181,9 @@ interface TransactionDao {
     @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND categoryId IS NOT NULL GROUP BY categoryId ORDER BY total DESC")
     fun getExpensesByCategory(startDate: Long, endDate: Long): Flow<List<CategoryExpense>>
 
+    @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND categoryId IS NOT NULL AND creditCardId = :cardId GROUP BY categoryId ORDER BY total DESC")
+    fun getExpensesByCategoryForCard(startDate: Long, endDate: Long, cardId: Long): Flow<List<CategoryExpense>>
+
     @Query("SELECT creditCardId, SUM(amount) as total FROM transactions WHERE isExpense = 1 AND date >= :startDate AND date <= :endDate AND creditCardId IS NOT NULL GROUP BY creditCardId ORDER BY total DESC")
     fun getExpensesByCard(startDate: Long, endDate: Long): Flow<List<CardExpense>>
 
@@ -177,8 +196,17 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE partnerSynced = 0 ORDER BY date DESC")
     fun getUnsynced(): Flow<List<Transaction>>
 
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun countAll(): Int
+
     @RawQuery(observedEntities = [Transaction::class])
     fun getAllTransactions(query: SimpleSQLiteQuery): Flow<List<Transaction>>
+
+    @Query("SELECT strftime('%Y-%m', date/1000, 'unixepoch') as month, SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0 END) as income, SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0 END) as expense FROM transactions WHERE date >= :startDate AND date <= :endDate GROUP BY month ORDER BY month")
+    fun getMonthlyBalancesInRange(startDate: Long, endDate: Long): Flow<List<MonthlyBalance>>
+
+    @Query("SELECT strftime('%Y-%m', date/1000, 'unixepoch') as month, SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0 END) as income, SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0 END) as expense FROM transactions GROUP BY month ORDER BY month")
+    fun getMonthlyBalances(): Flow<List<MonthlyBalance>>
 }
 
 @Dao
@@ -298,4 +326,10 @@ interface ShoppingItemDao {
 
     @Query("SELECT * FROM shopping_items WHERE id = :id")
     suspend fun getById(id: Long): ShoppingItem?
+
+    @Query("DELETE FROM shopping_items WHERE isChecked = 1")
+    suspend fun clearChecked(): Int
+
+    @Query("DELETE FROM shopping_items")
+    suspend fun clearAll(): Int
 }

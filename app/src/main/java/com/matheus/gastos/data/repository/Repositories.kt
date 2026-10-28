@@ -439,7 +439,7 @@ class BudgetLimitRepository(
         }
     }
 
-    data class BudgetLimitWithCategory(
+    data class BudgetLimitWithCategoryInfo(
         val budgetLimit: BudgetLimit,
         val categoryName: String?,
         val categoryColor: Int,
@@ -453,7 +453,7 @@ class BudgetLimitRepository(
      * Antes o mapeamento devolvia `null`/`0` sempre e ninguém calculava o gasto,
      * por isso o limite nunca contava transação nenhuma (nem nova nem antiga).
      */
-    fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategory>> {
+    fun getActiveWithCategories(): Flow<List<BudgetLimitWithCategoryInfo>> {
         return dao.getActive().map { limits ->
             if (limits.isEmpty()) return@map emptyList()
 
@@ -471,7 +471,7 @@ class BudgetLimitRepository(
                     ?.total
                     ?: 0.0
 
-                BudgetLimitWithCategory(
+                BudgetLimitWithCategoryInfo(
                     budgetLimit = limit,
                     categoryName = category?.name,
                     categoryColor = category?.color ?: 0xFF6750A4.toInt(),
