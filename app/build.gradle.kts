@@ -81,11 +81,11 @@ android {
 }
 
 dependencies {
-    // Kotlin 1.9.24 + Compose compiler 1.5.11 + Compose runtime 1.6.1 (alinhados)
+    // Kotlin 1.9.23 + Compose compiler 1.5.11 + Compose runtime 1.6.1 (alinhados)
     val composeVersion = "1.6.1"
     val material3Version = "1.2.0"
     val lifecycleVersion = "2.7.0"
-    val roomVersion = "2.6.1"
+    val roomVersion = "2.5.2"
 
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
