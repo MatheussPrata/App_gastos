@@ -209,24 +209,3 @@ abstract class AppDatabase : RoomDatabase() {
     }
 }
 
-class Converters {
-    @TypeConverter
-    fun fromBudgetPeriod(value: String?): com.matheus.gastos.data.entity.BudgetPeriod? {
-        return value?.let { com.matheus.gastos.data.entity.BudgetPeriod.valueOf(it.uppercase()) }
-    }
-
-    @TypeConverter
-    fun toBudgetPeriod(period: com.matheus.gastos.data.entity.BudgetPeriod?): String? {
-        return period?.value
-    }
-
-    @TypeConverter
-    fun fromRecurringFrequency(value: String?): com.matheus.gastos.data.entity.RecurringFrequency? {
-        return value?.let { com.matheus.gastos.data.entity.RecurringFrequency.valueOf(it.uppercase()) }
-    }
-
-    @TypeConverter
-    fun toRecurringFrequency(freq: com.matheus.gastos.data.entity.RecurringFrequency?): String? {
-        return freq?.value
-    }
-}

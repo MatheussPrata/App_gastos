@@ -58,6 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.TransactionDao
+import com.matheus.gastos.data.dao.CategoryExpense
+import com.matheus.gastos.data.dao.CardExpense
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.CreditCard
 import com.matheus.gastos.ui.components.ChartEntry
@@ -308,7 +310,7 @@ fun ReportsScreen(
 @Composable
 private fun CategoryTabContent(
     view: Int,
-    items: List<TransactionDao.CategoryExpense>,
+    items: List<CategoryExpense>,
     categoryMap: Map<Long, Category>,
     totalExpenses: Double,
     selectedIndex: Int?,
@@ -330,7 +332,7 @@ private fun CategoryTabContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(items) { item: TransactionDao.CategoryExpense ->
+            items(items) { item: CategoryExpense ->
                 CategoryExpenseItem(
                     item = item,
                     category = categoryMap[item.categoryId],
@@ -344,7 +346,7 @@ private fun CategoryTabContent(
 @Composable
 private fun CardTabContent(
     view: Int,
-    items: List<TransactionDao.CardExpense>,
+    items: List<CardExpense>,
     cardMap: Map<Long, CreditCard>,
     totalExpenses: Double,
     selectedIndex: Int?,
@@ -366,7 +368,7 @@ private fun CardTabContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(items) { item: TransactionDao.CardExpense ->
+            items(items) { item: CardExpense ->
                 CardExpenseItem(
                     item = item,
                     card = cardMap[item.creditCardId],
@@ -676,7 +678,7 @@ fun TabButton(
 
 @Composable
 fun CategoryExpenseItem(
-    item: TransactionDao.CategoryExpense,
+    item: CategoryExpense,
     category: Category?,
     totalExpenses: Double
 ) {
@@ -734,7 +736,7 @@ fun CategoryExpenseItem(
 
 @Composable
 fun CardExpenseItem(
-    item: TransactionDao.CardExpense,
+    item: CardExpense,
     card: CreditCard?,
     totalExpenses: Double
 ) {

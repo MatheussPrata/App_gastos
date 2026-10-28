@@ -8,6 +8,8 @@ import com.matheus.gastos.data.dao.MonthlyBalance
 import com.matheus.gastos.data.dao.BudgetLimitDao
 import com.matheus.gastos.data.dao.AppSettingsDao
 import com.matheus.gastos.data.dao.ShoppingItemDao
+import com.matheus.gastos.data.dao.CategoryExpense
+import com.matheus.gastos.data.dao.CardExpense
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.Subcategory
 import com.matheus.gastos.data.entity.CreditCard
@@ -206,10 +208,10 @@ class TransactionRepository(private val dao: TransactionDao) {
     fun getFutureInstallments(currentDate: Long): Flow<List<Transaction>> = dao.getFutureInstallments(currentDate)
     fun getTotalExpenses(startDate: Long, endDate: Long): Flow<Double?> = dao.getTotalExpenses(startDate, endDate)
     fun getTotalIncome(startDate: Long, endDate: Long): Flow<Double?> = dao.getTotalIncome(startDate, endDate)
-    fun getExpensesByCategory(startDate: Long, endDate: Long): Flow<List<TransactionDao.CategoryExpense>> = dao.getExpensesByCategory(startDate, endDate)
-    fun getExpensesByCard(startDate: Long, endDate: Long): Flow<List<TransactionDao.CardExpense>> = dao.getExpensesByCard(startDate, endDate)
+    fun getExpensesByCategory(startDate: Long, endDate: Long): Flow<List<CategoryExpense>> = dao.getExpensesByCategory(startDate, endDate)
+    fun getExpensesByCard(startDate: Long, endDate: Long): Flow<List<CardExpense>> = dao.getExpensesByCard(startDate, endDate)
 
-    fun getExpensesByCategoryForCard(startDate: Long, endDate: Long, cardId: Long): Flow<List<TransactionDao.CategoryExpense>> =
+    fun getExpensesByCategoryForCard(startDate: Long, endDate: Long, cardId: Long): Flow<List<CategoryExpense>> =
         dao.getExpensesByCategoryForCard(startDate, endDate, cardId)
     suspend fun getById(id: Long) = dao.getById(id)
 
