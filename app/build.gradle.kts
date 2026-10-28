@@ -141,7 +141,7 @@ dependencies {
 
     // Google Drive API (available in Maven Central)
     implementation("com.google.api-client:google-api-client-android:2.5.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20241104-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240509-2.0.0")
     implementation("com.google.http-client:google-http-client-gson:1.45.0")
 
     // Coil
