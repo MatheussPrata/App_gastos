@@ -11,6 +11,9 @@ import com.matheus.gastos.data.entity.Connection
 import com.matheus.gastos.data.entity.RecurringTransaction
 import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.data.entity.ShoppingItem
+import com.matheus.gastos.data.dao.CategoryExpense
+import com.matheus.gastos.data.dao.CardExpense
+import com.matheus.gastos.data.dao.BudgetLimitWithCategory
 import kotlinx.coroutines.flow.Flow
 
 @Dao
