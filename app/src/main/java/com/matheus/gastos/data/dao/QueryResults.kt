@@ -6,7 +6,7 @@ import com.matheus.gastos.data.entity.BudgetLimit
 import com.matheus.gastos.data.entity.Category
 
 // Query result classes for Room queries
-// In same package as DAOs for KSP visibility
+// Separate file ensures KSP processes them before DAOs that use them
 
 data class CategoryExpense(
     val categoryId: Long,
