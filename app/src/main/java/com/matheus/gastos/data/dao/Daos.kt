@@ -1,6 +1,8 @@
 package com.matheus.gastos.data.dao
 
 import androidx.room.*
+import androidx.room.Embedded
+import androidx.room.Relation
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.matheus.gastos.data.entity.Category
 import com.matheus.gastos.data.entity.Subcategory
@@ -280,12 +282,12 @@ interface ShoppingItemDao {
 // ==================== QUERY RESULT CLASSES ====================
 
 data class CategoryExpense(
-    val categoryId: Long?,
+    val categoryId: Long,
     val total: Double
 )
 
 data class CardExpense(
-    val creditCardId: Long?,
+    val creditCardId: Long,
     val total: Double
 )
 
@@ -295,5 +297,5 @@ data class BudgetLimitWithCategory(
         parentColumn = "categoryId",
         entityColumn = "id"
     )
-    val category: Category?
+    val category: Category
 )
