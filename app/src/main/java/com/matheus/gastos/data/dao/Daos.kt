@@ -12,6 +12,9 @@ import com.matheus.gastos.data.entity.Connection
 import com.matheus.gastos.data.entity.RecurringTransaction
 import com.matheus.gastos.data.entity.RecurringFrequency
 import com.matheus.gastos.data.entity.ShoppingItem
+import com.matheus.gastos.data.dao.CategoryExpense
+import com.matheus.gastos.data.dao.CardExpense
+import com.matheus.gastos.data.dao.BudgetLimitWithCategory
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -276,24 +279,3 @@ interface ShoppingItemDao {
     @Query("SELECT * FROM shopping_items WHERE id = :id")
     suspend fun getById(id: Long): ShoppingItem?
 }
-
-// ==================== QUERY RESULT CLASSES ====================
-
-data class CategoryExpense(
-    val categoryId: Long?,
-    val total: Double
-)
-
-data class CardExpense(
-    val creditCardId: Long?,
-    val total: Double
-)
-
-data class BudgetLimitWithCategory(
-    @Embedded val budgetLimit: BudgetLimit,
-    @Relation(
-        parentColumn = "categoryId",
-        entityColumn = "id"
-    )
-    val category: Category?
-)
