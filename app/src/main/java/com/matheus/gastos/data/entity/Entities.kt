@@ -14,10 +14,7 @@ data class Category(
     val icon: String, // Material icon name
     val isDefault: Boolean = false,
     val sortOrder: Int = 0
-) {
-    @Transient
-    var subcategories: List<Subcategory> = emptyList()
-}
+)
 
 @Entity(
     tableName = "subcategories",
