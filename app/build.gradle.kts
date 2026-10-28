@@ -139,6 +139,11 @@ dependencies {
     // Google Play Services Auth
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
+    // Google Drive API (verified Maven Central version)
+    implementation("com.google.api-client:google-api-client-android:2.5.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240509-2.0.0")
+    implementation("com.google.http-client:google-http-client-gson:1.45.0")
+
     // Coil
     implementation("io.coil-kt:coil-compose:2.4.0")
 
